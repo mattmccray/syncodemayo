@@ -41,7 +41,6 @@ Performing 'help' on target: app
 
     -V, --version        output the version number
     -c, --config [file]  Specify local config [file]
-    -v, --verbose        Verbose logging
     -h, --help           output usage information
 
 
@@ -87,7 +86,7 @@ Example `syncodemayo.json` config:
 }
 ```
 
-You can put the FTP password in the config, but if you're adding it to source control I wouldn't. Instead, add the passord to an `.env` file that you set to ignored in your SCM.
+You can put the FTP password in the config, but if you're adding it to source control I wouldn't. Instead, add the password to an `.env` file that you set to ignored in your SCM.
 
 Example `.env` for above config:
 
