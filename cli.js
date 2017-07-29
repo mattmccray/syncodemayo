@@ -1,34 +1,17 @@
 #!/usr/bin/env node
 
-/**
- * TODO: Add support for usage like:
- * 
- *  syncodemayo [command] [-v -f -c config]
- * 
- *  command = defaults to sync (sync, check, init, changes*)
- *  -c = Config file, default: .syncdemayo.json
- *  -v = Verbose
- *  -f = Force
- * 
- *  *changes command in a later release
- */
-
-/**
- * Module dependencies.
- */
-
 const syncodemayo = require('./syncodemayo')
 const program = require('commander');
 const defaultTarget = 'staging'
 
 let syncTarget = 'app'
 let command = 'help'
+let options
 
 program
   .version('1.0.0')
   .option('-c, --config [file]', 'Specify local config [file]', '.syncodemayo.json')
   .option('-v, --verbose', 'Verbose logging')
-// .option('-t, --target [name]', 'Specify server [target]', 'staging')
 
 program
   .command('init [target]')
@@ -59,7 +42,7 @@ program
   })
 
 program
-  .command('sync [target]') //{ isDefault: true }
+  .command('sync [target]')
   .alias('s')
   .description("Perform sync to server")
   .action((target) => {
@@ -72,63 +55,39 @@ program
   .alias('l')
   .description("List defined targets in config")
   .action(() => {
-    // syncTarget = target || defaultTarget
     command = "ls"
   })
-
-// program
-//   .command("*", { isDefault: true, noHelp: true })
-//   .action(() => {
-//     program.outputHelp((h) => {
-//       console.log(h)
-//     })
-//   })
 
 program.parse(process.argv);
 
 console.log(`Performing '${command}' on target: ${syncTarget}`)
 
-let action
+options = {
+  verbose: program.verbose,
+  config: program.config,
+  stage: syncTarget
+}
 
 switch (command) {
 
   case "changes":
-    action = syncodemayo.changed({
-      verbose: program.verbose,
-      config: program.config,
-      stage: syncTarget
-    }).then(showDone).catch(showError)
+    syncodemayo.changed(options).then(showDone).catch(showError)
     break
 
   case "check":
-    action = syncodemayo.check({
-      verbose: program.verbose,
-      config: program.config,
-      stage: syncTarget
-    }).then(showDone).catch(showError)
+    syncodemayo.check(options).then(showDone).catch(showError)
     break
 
   case "init":
-    action = syncodemayo.init({
-      verbose: program.verbose,
-      config: program.config,
-      stage: syncTarget
-    }).then(showDone).catch(showError)
+    syncodemayo.init(options).then(showDone).catch(showError)
     break
 
   case "ls":
-    action = syncodemayo.listTargets({
-      verbose: program.verbose,
-      config: program.config
-    }).then(showDone).catch(showError)
+    syncodemayo.listTargets(options).then(showDone).catch(showError)
     break;
 
   case "sync":
-    action = syncodemayo.run({
-      verbose: program.verbose,
-      config: program.config,
-      stage: syncTarget
-    }).then(showDone).catch(showError)
+    syncodemayo.run(options).then(showDone).catch(showError)
     break
 
   case "help":
@@ -140,14 +99,10 @@ switch (command) {
 function showDone() {
   console.log("\nDone.\n")
 }
+
 function showError(err) {
   console.error("\n(!)", err.message)
   if (program.verbose) {
     console.error(err)
   }
 }
-
-// console.log('Running SyncoDeMayo %s with options:, %o', command, options);
-// if (program.verbose) console.log('  - verbose');
-// if (program.force) console.log('  - force');
-// console.log('  - Config: %s', program.config);
