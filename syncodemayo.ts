@@ -2,6 +2,7 @@ import * as Promise from 'bluebird'
 import * as JsFtp from 'jsftp'
 import * as JsFtpMkDirP from 'jsftp-mkdirp'
 import * as glob from 'glob'
+import * as minimatch from 'minimatch'
 import * as path from 'path'
 import * as crc from 'crc'
 import * as fsSrc from 'fs'
@@ -222,6 +223,13 @@ function buildLocalFilelist(config: ILocalConfig) {
         .uniq()
         .compact()
         .value())
+    .then((paths: string[]) => {
+      return paths.filter(path => {
+        return _.some(config.exclude, (pattern: string) => {
+          return minimatch(path, pattern, { dot: true })
+        })
+      })
+    })
     .then((paths: string[]) => {
       const filelist: any = {}
       for (let pathname of paths) { //Array.from(paths)
@@ -521,9 +529,9 @@ export function run(options: Partial<CLIOptions>) {
 
 export function listTargets(options: Partial<CLIOptions>) {
   return getConfig(options)
-    .then((config) => {
+    .then((config: IConfig) => {
       console.log("Sync targets:")
-      Object.keys(config).forEach((target: any) => {
+      Object.keys(config.targets).forEach((target: any) => {
         if (target != 'local' && !target.startsWith('_'))
           console.log(" -", target)
       })

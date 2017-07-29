@@ -65,36 +65,6 @@ Example `syncodemayo.json` config:
     "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"]
   },
 
-  "staging": {
-    "path": "MyApp/www/stage",
-    "host": "www.myapp.com",
-    "user": "USERNAME",
-    "pass": "PASSWORD",
-    "port": 21,
-    "cache": ".synco-filelist"
-  },
-
-  "production": {
-    "path": "MyApp/www",
-    "host": "www.myapp.com",
-    "user": "USERNAME",
-    "pass": "PASSWORD",
-    "port": 21,
-    "cache": ".synco-filelist"
-  }
-}
-```
-
-New version?
-
-```js
-{
-  "local": {
-    "path": "public",
-    "files": "**/**",
-    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"]
-  },
-
   "targets": {
     "staging": {
       "path": "MyApp/www/stage",

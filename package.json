@@ -26,7 +26,8 @@
     "glob": "^7.1.2",
     "jsftp": "1.3.1",
     "jsftp-mkdirp": "0.1.2",
-    "lodash": "2.4.1"
+    "lodash": "2.4.1",
+    "minimatch": "^3.0.4"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.8",
@@ -34,6 +35,7 @@
     "@types/crc": "^3.4.0",
     "@types/glob": "^5.0.30",
     "@types/lodash": "^4.14.71",
+    "@types/minimatch": "^2.0.29",
     "eslint": "^4.3.0",
     "typescript": "^2.4.2"
   }

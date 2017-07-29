@@ -4,6 +4,7 @@ const Promise = require("bluebird");
 const JsFtp = require("jsftp");
 const JsFtpMkDirP = require("jsftp-mkdirp");
 const glob = require("glob");
+const minimatch = require("minimatch");
 const path = require("path");
 const crc = require("crc");
 const fsSrc = require("fs");
@@ -176,6 +177,13 @@ function buildLocalFilelist(config) {
         .uniq()
         .compact()
         .value())
+        .then((paths) => {
+        return paths.filter(path => {
+            return _.some(config.exclude, (pattern) => {
+                return minimatch(path, pattern, { dot: true });
+            });
+        });
+    })
         .then((paths) => {
         const filelist = {};
         for (let pathname of paths) {
@@ -469,7 +477,7 @@ function listTargets(options) {
     return getConfig(options)
         .then((config) => {
         console.log("Sync targets:");
-        Object.keys(config).forEach((target) => {
+        Object.keys(config.targets).forEach((target) => {
             if (target != 'local' && !target.startsWith('_'))
                 console.log(" -", target);
         });
