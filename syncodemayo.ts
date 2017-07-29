@@ -166,9 +166,9 @@ function getConfig(opts: Partial<CLIOptions>) {
       '.syncodemayo.js',
       'syncodemayo.js',
       '.syncodemayo',
-      'syncodemayo',
-      'sync-config',
-      'sync-config.json'
+      '.sync-config',
+      'sync-config.json',
+      'sync-config.js'
     ]
     if (!!opts.config) {
       potentialConfigs.unshift(opts.config)
