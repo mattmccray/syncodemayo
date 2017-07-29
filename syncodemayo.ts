@@ -8,7 +8,6 @@ import * as fsSrc from 'fs'
 import * as _ from 'lodash'
 
 const Ftp: any = JsFtpMkDirP(JsFtp)
-
 const fs: any = Promise.promisifyAll(fsSrc)
 
 interface IConfig {
