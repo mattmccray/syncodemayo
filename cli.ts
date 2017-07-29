@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
+import * as dotenv from 'dotenv'
 import * as CLI from './lib/Cli'
 import * as program from 'commander'
+
+dotenv.config()
 
 const defaultTarget = 'staging'
 let syncTarget: string | undefined = undefined
@@ -66,27 +69,22 @@ switch (command) {
 
   case "changes":
     CLI.changed(program.config, syncTarget).then(showDone).catch(showError)
-    // syncodemayo.changed(options).then(showDone).catch(showError)
     break
 
   case "check":
     CLI.check(program.config, syncTarget).then(showDone).catch(showError)
-    // syncodemayo.check(options).then(showDone).catch(showError)
     break
 
   case "init":
     CLI.init(program.config, syncTarget).then(showDone).catch(showError)
-    // syncodemayo.init(options).then(showDone).catch(showError)
     break
 
   case "ls":
     CLI.ls(program.config).then(showDone).catch(showError)
-    // syncodemayo.listTargets(options).then(showDone).catch(showError)
     break;
 
   case "sync":
     CLI.sync(program.config, syncTarget).then(showDone).catch(showError)
-    // syncodemayo.run(options).then(showDone).catch(showError)
     break
 
   case "help":
