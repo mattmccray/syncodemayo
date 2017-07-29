@@ -62,27 +62,38 @@ Example `syncodemayo.json` config:
   "local": {
     "path": "public",
     "files": "**/**",
-    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"]
+    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"],
+    "defaultTarget": "staging"
   },
 
   "targets": {
     "staging": {
-      "path": "MyApp/www/stage",
-      "host": "www.myapp.com",
-      "user": "USERNAME",
-      "pass": "PASSWORD",
-      "port": 21,
-      "cache": ".synco-filelist"
+      "host": "www.myapp.com", // Required
+      "path": "MyApp/www/stage", // Required
+      "user": "USERNAME", // Required
+      "pass": "PASSWORD", // Optional, NOT RECOMMENDED! See note below for better way...
+      "port": 21, // Default
+      "cache": ".synco-filelist", // Default
+      "prompt": false // Default is true, false will upload w/o confirming
     },
 
     "production": {
-      "path": "MyApp/www",
       "host": "www.myapp.com",
+      "path": "MyApp/www",
       "user": "USERNAME",
-      "pass": "PASSWORD",
-      "port": 21,
-      "cache": ".synco-filelist"
+      "prompt": "This is for PRODUCTION! Do you really mean it?"
     }
   }
 }
 ```
+
+You can put the FTP password in the config, but if you're adding it to source control I wouldn't. Instead, add the passord to an `.env` file that you set to ignored in your SCM.
+
+Example `.env` for above config:
+
+```bash
+STAGING_PWD=ftpPasswordHere
+PRODUCTION_PWD="Other password here"
+```
+
+SyncoDeMayo will automatically look in your `.env` for passwords if they aren't in your config.

@@ -8,6 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const dotenv = require("dotenv");
 const Bluebird = require("bluebird");
 const JsFtp = require("jsftp");
 const JsFtpMkDirP = require("jsftp-mkdirp");
@@ -17,6 +18,7 @@ const path = require("path");
 const crc = require("crc");
 const fsSrc = require("fs");
 const _ = require("lodash");
+dotenv.config();
 const Ftp = JsFtpMkDirP(JsFtp);
 const fs = Bluebird.promisifyAll(fsSrc);
 let conn = null;
@@ -36,7 +38,7 @@ function connect(config) {
     return __awaiter(this, void 0, void 0, function* () {
         const { host, port, user, pass } = config;
         log("Connecting to FTP:", { host, port, user, pass: `(${pass.length} chars)` });
-        return new Ftp({ host, port, user, pass });
+        return new Ftp({ host, port, user, pass, debugMode: false });
     });
 }
 function getRemoteFile(filename) {
@@ -274,7 +276,7 @@ function doFileSync(dryRun) {
         Object
             .keys(remoteFiles)
             .forEach((remoteFilename) => {
-            const remoteHash = remoteFiles[remoteFilename];
+            // const remoteHash = remoteFiles[remoteFilename]
             if (!(remoteFilename in localFiles)) {
                 changeset.removed.push(remoteFilename);
             }

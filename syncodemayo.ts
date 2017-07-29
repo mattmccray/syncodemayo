@@ -1,3 +1,4 @@
+import * as dotenv from 'dotenv'
 import * as Bluebird from 'bluebird'
 import * as JsFtp from 'jsftp'
 import * as JsFtpMkDirP from 'jsftp-mkdirp'
@@ -7,6 +8,8 @@ import * as path from 'path'
 import * as crc from 'crc'
 import * as fsSrc from 'fs'
 import * as _ from 'lodash'
+
+dotenv.config()
 
 const Ftp: any = JsFtpMkDirP(JsFtp)
 const fs: any = Bluebird.promisifyAll(fsSrc)
@@ -66,7 +69,7 @@ async function connect(config: ITargetConfig) {
   const { host, port, user, pass } = config
 
   log("Connecting to FTP:", { host, port, user, pass: `(${pass.length} chars)` })
-  return new Ftp({ host, port, user, pass })
+  return new Ftp({ host, port, user, pass, debugMode: false })
 }
 
 function getRemoteFile(filename: string): Promise<string> {
@@ -333,7 +336,7 @@ function doFileSync(dryRun: boolean) {
       Object
         .keys(remoteFiles)
         .forEach((remoteFilename) => {
-          const remoteHash = remoteFiles[remoteFilename]
+          // const remoteHash = remoteFiles[remoteFilename]
 
           if (!(remoteFilename in localFiles)) {
             changeset.removed.push(remoteFilename)

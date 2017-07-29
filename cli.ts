@@ -1,18 +1,16 @@
 #!/usr/bin/env node
 
-import * as syncodemayo from './syncodemayo'
+import * as CLI from './lib/Cli'
 import * as program from 'commander'
 
 const defaultTarget = 'staging'
-
-let syncTarget = 'app'
+let syncTarget: string | undefined = undefined
 let command = 'help'
-let options
 
 program
   .version('1.0.0')
   .option('-c, --config [file]', 'Specify local config [file]', '.syncodemayo.json')
-  .option('-v, --verbose', 'Verbose logging')
+// .option('-v, --verbose', 'Verbose logging')
 
 program
   .command('init [target]')
@@ -61,41 +59,40 @@ program
 
 program.parse(process.argv);
 
-console.log(`Performing '${command}' on target: ${syncTarget}`)
+console.log(`Performing '${command}' on target: ${syncTarget || 'app'}`)
 
-options = {
-  verbose: program.verbose,
-  config: program.config,
-  stage: syncTarget
-}
 
 switch (command) {
 
   case "changes":
-    syncodemayo.changed(options).then(showDone).catch(showError)
+    CLI.changed(program.config, syncTarget).then(showDone).catch(showError)
+    // syncodemayo.changed(options).then(showDone).catch(showError)
     break
 
   case "check":
-    syncodemayo.check(options).then(showDone).catch(showError)
+    CLI.check(program.config, syncTarget).then(showDone).catch(showError)
+    // syncodemayo.check(options).then(showDone).catch(showError)
     break
 
   case "init":
-    syncodemayo.init(options).then(showDone).catch(showError)
+    CLI.init(program.config, syncTarget).then(showDone).catch(showError)
+    // syncodemayo.init(options).then(showDone).catch(showError)
     break
 
   case "ls":
-    syncodemayo.listTargets(options).then(showDone).catch(showError)
+    CLI.ls(program.config).then(showDone).catch(showError)
+    // syncodemayo.listTargets(options).then(showDone).catch(showError)
     break;
 
   case "sync":
-    syncodemayo.run(options).then(showDone).catch(showError)
+    CLI.sync(program.config, syncTarget).then(showDone).catch(showError)
+    // syncodemayo.run(options).then(showDone).catch(showError)
     break
 
   case "help":
   default:
     program.help()
 }
-
 
 function showDone() {
   console.log("\nDone.\n")
