@@ -104,7 +104,7 @@ function putFile(filename, remotePath) {
   })
 };
 
-function loadLocalFile(pathname, rejectOnError) {
+function loadLocalFile(pathname) {
   return new Promise((resolve, reject) => {
     if (typeof pathname !== 'string') {
       return reject(new Error(`Path must be a string. Got a ${typeof pathname}`));
@@ -118,14 +118,11 @@ function loadLocalFile(pathname, rejectOnError) {
     }
     catch (err) {
       reject(err)
-      // if (rejectOnError) {
-      //   reject(err)
-      // }
     }
   });
 };
 
-function getConfig(opts) { // opts from CLI
+function getConfig(opts) {
   if (opts == null) { opts = {}; }
   log("SyncoDeMayo, getting started...");
 
@@ -160,22 +157,6 @@ function getConfig(opts) { // opts from CLI
 
     tryLoading(potentialConfigs.shift())
   })
-
-
-  // return Promise
-  //   .any([
-  //     loadLocalFile(opts.config),
-  //     loadLocalFile('.syncodemayo.json'),
-  //     loadLocalFile('syncodemayo.json'),
-  //     loadLocalFile('.syncodemayo.js'),
-  //     loadLocalFile('syncodemayo.js'),
-  //     loadLocalFile('.syncodemayo'),
-  //     loadLocalFile('syncodemayo')
-  //   ])
-  //   .catch((err) => {
-  //     //noop
-  //     // log('whiff')
-  //   });
 };
 
 
@@ -244,12 +225,6 @@ function startup(options) {
     });
 };
 
-function handleError(err) {
-  console.log("Error processing sync:");
-  console.log(err.message || 'Unknown error');
-  console.error(err);
-};
-
 function cleanup() {
   conn && conn.raw && conn.raw.quit && conn.raw.quit((err, data) => {
     if (err != null) {
@@ -306,10 +281,10 @@ function initializeServerConfiguration() {
 }
 
 function doFileSync(dryRun) {
-  log("Connected to server."); //, conn
+  log("Connected to server.");
 
   return Promise.all([
-    getRemoteFilelist(config._target), //.catch -> log "Failed to get remote filelist. Is this the first run, perhaps?"
+    getRemoteFilelist(config._target),
     buildLocalFilelist(config.local)
   ])
     .then((results) => {
@@ -352,7 +327,6 @@ function doFileSync(dryRun) {
       log("File Changeset:", changeset)
 
       if (dryRun) {
-        // console.log("File Changeset:", changeset)
         if (changeset.added.length > 0) {
           console.log("New Local Files: (%s)", changeset.added.length)
           changeset.added.forEach(f => console.log(" -", f))
@@ -369,32 +343,19 @@ function doFileSync(dryRun) {
       }
 
       return changeset.uploading
-
-      // return (() => {
-      //   const result = [];
-      //   for (let filename in localFiles) {
-      //     const hash = localFiles[filename];
-      //     if (remoteFiles[filename] !== hash) {
-      //       result.push(filename);
-      //     }
-      //   }
-      //   return result;
-      // })();
     })
     .then((changedFiles) => {
       log("Changed files:", changedFiles);
-      // changed_files = changed;
       let current = Promise.fulfilled();
+
       console.log("Uploading %s files...", changedFiles.length)
       return Promise
-        .all(
-        changedFiles.map((filename) => {
+        .all(changedFiles.map((filename) => {
           const remotePath = `${config._target.path}${filename.replace(config.local.path, '')}`;
           return current = current
             .then(() => verifyRemoteDirectory(path.dirname(remotePath)))
             .then(() => putFile(filename, remotePath));
-        })
-        )
+        }))
         .then(() => changedFiles);
     })
     .then((changedFiles) => {
@@ -411,7 +372,6 @@ function doFileSync(dryRun) {
               throw new Error("Directory creation error.");
             }
           });
-
       }
       else {
         console.log("No changed files.");
@@ -448,7 +408,6 @@ const api = {
           console.log(`It looks like you need to run sync:init for ${config._target.host}`);
         }
       })
-      // .catch(handleError)
       .finally(cleanup);
   },
 
@@ -488,7 +447,6 @@ const api = {
           throw err
         }
       })
-      // .catch(handleError)
       .finally(cleanup);
   },
 
@@ -507,7 +465,6 @@ const api = {
         return is_configured;
       })
       .then(() => doFileSync(true))
-      // .catch(handleError)
       .finally(cleanup);
   },
 
@@ -526,7 +483,6 @@ const api = {
         return is_configured;
       })
       .then(() => doFileSync(false))
-      // .catch(handleError)
       .finally(cleanup);
   },
 
