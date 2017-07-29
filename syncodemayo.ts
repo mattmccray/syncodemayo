@@ -1,4 +1,4 @@
-import * as Promise from 'bluebird'
+import * as Bluebird from 'bluebird'
 import * as JsFtp from 'jsftp'
 import * as JsFtpMkDirP from 'jsftp-mkdirp'
 import * as glob from 'glob'
@@ -9,7 +9,7 @@ import * as fsSrc from 'fs'
 import * as _ from 'lodash'
 
 const Ftp: any = JsFtpMkDirP(JsFtp)
-const fs: any = Promise.promisifyAll(fsSrc)
+const fs: any = Bluebird.promisifyAll(fsSrc)
 
 interface IConfig {
   local: ILocalConfig
@@ -40,6 +40,10 @@ export interface CLIOptions {
   config?: string
 }
 
+interface IFilelist {
+  [filename: string]: number
+}
+
 
 let conn: any = null
 let config: IConfig = {} as IConfig
@@ -58,19 +62,14 @@ function log(...args: any[]) {
   }
 }
 
-// Connect to ftp
-function connect(config: ITargetConfig) {
-  return new Promise((resolve, reject) => {
-    const { host, port, user, pass } = config
+async function connect(config: ITargetConfig) {
+  const { host, port, user, pass } = config
 
-    log("Connecting to FTP:", { host, port, user, pass: `(${pass.length} chars)` })
-    conn = new Ftp({ host, port, user, pass })
-
-    resolve(conn)
-  })
+  log("Connecting to FTP:", { host, port, user, pass: `(${pass.length} chars)` })
+  return new Ftp({ host, port, user, pass })
 }
 
-function getRemoteFile(filename: string) {
+function getRemoteFile(filename: string): Promise<string> {
   log("Retrieve:", filename)
   let content = ""
   return new Promise((resolve, reject) => {
@@ -82,9 +81,9 @@ function getRemoteFile(filename: string) {
         console.log("Retrieval error.")
         reject(err)
       })
-      socket.on("close", (conn_err: any) => {
-        if (conn_err) {
-          reject(conn_err)
+      socket.on("close", (connErr: any) => {
+        if (connErr) {
+          reject(connErr)
         }
         else {
           resolve(content)
@@ -95,20 +94,13 @@ function getRemoteFile(filename: string) {
   })
 }
 
-function verifyRemoteDirectory(pathname: string) {
+function verifyRemoteDirectory(pathname: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    conn.mkdirp(pathname, function (err: any) {
-      if (err) {
-        reject(err)
-      }
-      else {
-        resolve(true)
-      }
-    })
+    conn.mkdirp(pathname, (err: any) => resolve(!err))
   })
 }
 
-function putBuffer(buff: any, remotePath: string) {
+function putBuffer(buff: any, remotePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     console.log(" ->", remotePath)
     conn.put(buff, remotePath, (err: any) => {
@@ -126,39 +118,32 @@ function putContent(content: string, remotePath: string) {
   return putBuffer(new Buffer(content), remotePath)
 }
 
-function putFile(filename: string, remotePath: string) {
-  return new Promise((resolve, reject) => {
-    fs.readFileAsync(filename)
-      .then((buffer: any) =>
-        putBuffer(buffer, remotePath)
-          .then(() => resolve(remotePath))
-          .catch((err) => reject(err))
-      )
-  })
+async function putFile(filename: string, remotePath: string) {
+  const buffer = await fs.readFileAsync(filename)
+  await putBuffer(buffer, remotePath)
+  return remotePath
 }
 
-function loadLocalFile(pathname: string) {
-  return new Promise((resolve, reject) => {
-    if (typeof pathname !== 'string') {
-      return reject(new Error(`Path must be a string. Got a ${typeof pathname}`))
-    }
-    try {
-      const fullpath = path.resolve("./" + pathname)
-      log("Trying require of:", fullpath)
-      const data = require(fullpath)
-      if (typeof data === 'object') { data._path = fullpath }
-      resolve(data)
-    }
-    catch (err) {
-      reject(err)
-    }
-  })
+
+async function loadLocalConfig(pathname: string): Promise<IConfig> {
+  if (typeof pathname !== 'string')
+    throw new Error(`Path must be a string. Got a ${typeof pathname}`)
+
+  const fullpath = path.resolve("./" + pathname)
+
+  log("Trying require of:", fullpath)
+  const data = require(fullpath) as IConfig
+
+  if (typeof data === 'object')
+    data._path = fullpath
+
+  return data
 }
 
-function getConfig(opts: Partial<CLIOptions>) {
+
+function getConfig(opts: Partial<CLIOptions>): Promise<IConfig> {
   if (opts == null) { opts = {} }
   log("SyncoDeMayo, getting started...")
-
   return new Promise((resolve, reject) => {
     const potentialConfigs = [
       '.syncodemayo.json',
@@ -175,7 +160,7 @@ function getConfig(opts: Partial<CLIOptions>) {
     }
     const tryLoading = (path: string | undefined) => {
       if (!!path) {
-        return loadLocalFile(path)
+        loadLocalConfig(path)
           .then(result => {
             resolve(result)
           })
@@ -193,7 +178,7 @@ function getConfig(opts: Partial<CLIOptions>) {
 }
 
 
-function getRemoteFilelist(config: ITargetConfig) {
+function getRemoteFilelist(config: ITargetConfig): Promise<IFilelist> {
   const pathname = `${config.path}/${config.cache}`
   console.log(" <-", pathname)
   return getRemoteFile(pathname)
@@ -202,88 +187,81 @@ function getRemoteFilelist(config: ITargetConfig) {
       console.log("Missing or error parsing remote file list.", err)
       console.log("\n   Run sync:init to setup SyncoDeMayo on the server.\n")
       process.exit(1)
-      return {}
     })
 }
 
-function buildLocalFilelist(config: ILocalConfig) {
+
+async function buildLocalFilelist(config: ILocalConfig): Promise<IFilelist> {
+  const excludeDirectories = (path: string) =>
+    !fs.statSync(path).isDirectory()
+  const excludeBlacklistedFiles = (path: string) =>
+    config.exclude.some(pattern => minimatch(path, pattern, { dot: true }))
+
   log("Create CRCs:")
-  return Promise
-    .resolve(`${config.path}/${config.files || '**/**'}`)
-    .then((pathname) => {
-      log('Glob: ', pathname)
-      return glob.sync(pathname)
-    })
-    .then((paths) =>
-      _(paths)
-        .filter((pathname: string) => {
-          const stat = fs.statSync(pathname)
-          return !stat.isDirectory()
-        })
-        .uniq()
-        .compact()
-        .value())
-    .then((paths: string[]) => {
-      return paths.filter(path => {
-        return _.some(config.exclude, (pattern: string) => {
-          return minimatch(path, pattern, { dot: true })
-        })
-      })
-    })
-    .then((paths: string[]) => {
-      const filelist: any = {}
-      for (let pathname of paths) { //Array.from(paths)
-        filelist[pathname] = crc.crc32(fs.readFileSync(pathname))
-      }
-      return filelist
-    })
+  const filelist: IFilelist = {}
+  const pathname = `${config.path}/${config.files || '**/**'}`
+  const paths = glob.sync(pathname)
+  const filePaths = _(paths)
+    .filter(excludeDirectories)
+    .uniq()
+    .compact()
+    .filter(excludeBlacklistedFiles)
+    .value()
+
+  for (let pathname of filePaths) {
+    filelist[pathname] = crc.crc32(fs.readFileSync(pathname))
+  }
+
+  return filelist
 }
 
-function startup(options: Partial<CLIOptions>) {
+
+async function startup(options: Partial<CLIOptions>) {
   if (!options) { options = {} }
   opts = _.defaults(options, opts)
-  return getConfig(opts)
-    .then((conf: IConfig) => {
-      if (conf == null) { throw new Error("Local config not found.") }
-      if (!conf.local) {
-        throw new Error("Invalid config, 'local' section missing.")
-      }
-      conf._target = conf.targets[opts.stage || 'staging']
-      if (!conf._target) {
-        throw new Error(`Target '${opts.stage || 'staging'}' section missing.`)
-      }
-      conf._target.cache = conf._target.cache || '.synco-filelist'
-      return conf
-    })
-    .then((conf: IConfig) => {
-      config = conf
-      return connect(conf._target)
-    })
-    .then((conn) => {
-      console.log(`Connected to ${config._target.host}`)
-      return conn
-    })
+
+  const conf = await getConfig(options)
+
+  if (conf == null)
+    throw new Error("Local config not found.")
+
+  if (!conf.local)
+    throw new Error("Invalid config, 'local' section missing.")
+
+  conf._target = conf.targets[opts.stage || 'staging']
+
+  if (!conf._target)
+    throw new Error(`Target '${opts.stage || 'staging'}' section missing.`)
+
+  conf._target.cache = conf._target.cache || '.synco-filelist'
+
+  // Assign global
+  config = conf
+
+  const conn = await connect(conf._target)
+
+  console.log(`Connected to ${config._target.host}`)
+  return conn
 }
 
-function cleanup() {
+
+function cleanup(data?: any) {
   conn && conn.raw && conn.raw.quit && conn.raw.quit((err: any, data: any) => {
     if (err != null) {
       console.error(err)
     }
   })
+  return data
 }
 
-function remoteFileExists(remotePath: string) {
+function cleanupAndRethrowError(err: any) {
+  cleanup()
+  throw err
+}
+
+function remoteFileExists(remotePath: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    conn.raw.size(remotePath, (err: any, size: any) => {
-      // log "SIZE OF", remotePath, "IS", size
-      if (err) {
-        resolve(false)
-      }
-      else {
-        resolve(true)
-      }
-    })
+    conn.raw.size(remotePath, (err: any, size: any) => resolve(!err))
   })
 }
 
@@ -310,7 +288,7 @@ function initializeServerConfiguration() {
       return verifyRemoteDirectory(path.dirname(remotePath))
         .then(function (success) {
           if (success) {
-            putContent("{}", remotePath) //,
+            putContent("{}", remotePath)
           }
           else {
             console.error("Directory error.")
@@ -322,14 +300,12 @@ function initializeServerConfiguration() {
 
 function doFileSync(dryRun: boolean) {
   log("Connected to server.")
-
-  return Promise.all([
-    getRemoteFilelist(config._target),
-    buildLocalFilelist(config.local)
-  ])
-    .then((results) => {
-      const remoteFiles = results[0]
-      const localFiles = results[1]
+  return Promise
+    .all([
+      getRemoteFilelist(config._target),
+      buildLocalFilelist(config.local)
+    ])
+    .then(([remoteFiles, localFiles]) => {
       log("Remote filelist:", remoteFiles)
       log("Local filelist:", localFiles)
 
@@ -386,7 +362,7 @@ function doFileSync(dryRun: boolean) {
     })
     .then((changedFiles) => {
       log("Changed files:", changedFiles)
-      let current = Promise.resolve({}) // fulfilled()
+      let current = Promise.resolve({})
 
       console.log("Uploading %s files...", changedFiles.length)
       return Promise
@@ -403,7 +379,7 @@ function doFileSync(dryRun: boolean) {
         const remotePath = `${config._target.path}/${config._target.cache}`
         log("Updating remote filelist:", remotePath)
         return verifyRemoteDirectory(path.dirname(remotePath))
-          .then(function (success) {
+          .then((success) => {
             if (success) {
               putContent(JSON.stringify(changedFiles, null, 2), remotePath)
             }
@@ -440,7 +416,7 @@ export function check(options: Partial<CLIOptions>) {
       log("Looking for", remotePath)
       return remoteFileExists(remotePath)
     })
-    .then(function (exists) {
+    .then((exists) => {
       if (exists) {
         console.log(`${config._target.host} appears ready to sync.`)
       }
@@ -448,7 +424,8 @@ export function check(options: Partial<CLIOptions>) {
         console.log(`It looks like you need to run sync:init for ${config._target.host}`)
       }
     })
-    .finally(cleanup)
+    .then(cleanup)
+    .catch(cleanupAndRethrowError)
 }
 
 /**
@@ -488,7 +465,8 @@ export function init(options: Partial<CLIOptions>) {
         throw err
       }
     })
-    .finally(cleanup)
+    .then(cleanup)
+    .catch(cleanupAndRethrowError)
 }
 
 
@@ -501,12 +479,13 @@ export function changed(options: Partial<CLIOptions>) {
       const remotePath = `${config._target.path}/${config._target.cache}`
       return remoteFileExists(remotePath)
     })
-    .then((is_configured) => {
-      if (!is_configured) { throw new Error(`${config._target.host} doesn't appear to be configured. Run sync:init.`) }
-      return is_configured
+    .then((isConfigured) => {
+      if (!isConfigured) { throw new Error(`${config._target.host} doesn't appear to be configured. Run sync:init.`) }
+      return isConfigured
     })
     .then(() => doFileSync(true))
-    .finally(cleanup)
+    .then(cleanup)
+    .catch(cleanupAndRethrowError)
 }
 
 /**
@@ -519,12 +498,13 @@ export function run(options: Partial<CLIOptions>) {
       const remotePath = `${config._target.path}/${config._target.cache}`
       return remoteFileExists(remotePath)
     })
-    .then((is_configured) => {
-      if (!is_configured) { throw new Error(`${config._target.host} doesn't appear to be configured. Run sync:init.`) }
-      return is_configured
+    .then((isConfigured) => {
+      if (!isConfigured) { throw new Error(`${config._target.host} doesn't appear to be configured. Run sync:init.`) }
+      return isConfigured
     })
     .then(() => doFileSync(false))
-    .finally(cleanup)
+    .then(cleanup)
+    .catch(cleanupAndRethrowError)
 }
 
 export function listTargets(options: Partial<CLIOptions>) {

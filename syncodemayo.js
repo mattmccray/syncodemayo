@@ -1,6 +1,14 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const Promise = require("bluebird");
+const Bluebird = require("bluebird");
 const JsFtp = require("jsftp");
 const JsFtpMkDirP = require("jsftp-mkdirp");
 const glob = require("glob");
@@ -10,7 +18,7 @@ const crc = require("crc");
 const fsSrc = require("fs");
 const _ = require("lodash");
 const Ftp = JsFtpMkDirP(JsFtp);
-const fs = Promise.promisifyAll(fsSrc);
+const fs = Bluebird.promisifyAll(fsSrc);
 let conn = null;
 let config = {};
 let opts = {
@@ -24,13 +32,11 @@ function log(...args) {
         console.log(...args);
     }
 }
-// Connect to ftp
 function connect(config) {
-    return new Promise((resolve, reject) => {
+    return __awaiter(this, void 0, void 0, function* () {
         const { host, port, user, pass } = config;
         log("Connecting to FTP:", { host, port, user, pass: `(${pass.length} chars)` });
-        conn = new Ftp({ host, port, user, pass });
-        resolve(conn);
+        return new Ftp({ host, port, user, pass });
     });
 }
 function getRemoteFile(filename) {
@@ -46,9 +52,9 @@ function getRemoteFile(filename) {
                 console.log("Retrieval error.");
                 reject(err);
             });
-            socket.on("close", (conn_err) => {
-                if (conn_err) {
-                    reject(conn_err);
+            socket.on("close", (connErr) => {
+                if (connErr) {
+                    reject(connErr);
                 }
                 else {
                     resolve(content);
@@ -60,14 +66,7 @@ function getRemoteFile(filename) {
 }
 function verifyRemoteDirectory(pathname) {
     return new Promise((resolve, reject) => {
-        conn.mkdirp(pathname, function (err) {
-            if (err) {
-                reject(err);
-            }
-            else {
-                resolve(true);
-            }
-        });
+        conn.mkdirp(pathname, (err) => resolve(!err));
     });
 }
 function putBuffer(buff, remotePath) {
@@ -87,30 +86,22 @@ function putContent(content, remotePath) {
     return putBuffer(new Buffer(content), remotePath);
 }
 function putFile(filename, remotePath) {
-    return new Promise((resolve, reject) => {
-        fs.readFileAsync(filename)
-            .then((buffer) => putBuffer(buffer, remotePath)
-            .then(() => resolve(remotePath))
-            .catch((err) => reject(err)));
+    return __awaiter(this, void 0, void 0, function* () {
+        const buffer = yield fs.readFileAsync(filename);
+        yield putBuffer(buffer, remotePath);
+        return remotePath;
     });
 }
-function loadLocalFile(pathname) {
-    return new Promise((resolve, reject) => {
-        if (typeof pathname !== 'string') {
-            return reject(new Error(`Path must be a string. Got a ${typeof pathname}`));
-        }
-        try {
-            const fullpath = path.resolve("./" + pathname);
-            log("Trying require of:", fullpath);
-            const data = require(fullpath);
-            if (typeof data === 'object') {
-                data._path = fullpath;
-            }
-            resolve(data);
-        }
-        catch (err) {
-            reject(err);
-        }
+function loadLocalConfig(pathname) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (typeof pathname !== 'string')
+            throw new Error(`Path must be a string. Got a ${typeof pathname}`);
+        const fullpath = path.resolve("./" + pathname);
+        log("Trying require of:", fullpath);
+        const data = require(fullpath);
+        if (typeof data === 'object')
+            data._path = fullpath;
+        return data;
     });
 }
 function getConfig(opts) {
@@ -125,16 +116,16 @@ function getConfig(opts) {
             '.syncodemayo.js',
             'syncodemayo.js',
             '.syncodemayo',
-            'syncodemayo',
-            'sync-config',
-            'sync-config.json'
+            '.sync-config',
+            'sync-config.json',
+            'sync-config.js'
         ];
         if (!!opts.config) {
             potentialConfigs.unshift(opts.config);
         }
         const tryLoading = (path) => {
             if (!!path) {
-                return loadLocalFile(path)
+                loadLocalConfig(path)
                     .then(result => {
                     resolve(result);
                 })
@@ -158,87 +149,65 @@ function getRemoteFilelist(config) {
         console.log("Missing or error parsing remote file list.", err);
         console.log("\n   Run sync:init to setup SyncoDeMayo on the server.\n");
         process.exit(1);
-        return {};
     });
 }
 function buildLocalFilelist(config) {
-    log("Create CRCs:");
-    return Promise
-        .resolve(`${config.path}/${config.files || '**/**'}`)
-        .then((pathname) => {
-        log('Glob: ', pathname);
-        return glob.sync(pathname);
-    })
-        .then((paths) => _(paths)
-        .filter((pathname) => {
-        const stat = fs.statSync(pathname);
-        return !stat.isDirectory();
-    })
-        .uniq()
-        .compact()
-        .value())
-        .then((paths) => {
-        return paths.filter(path => {
-            return _.some(config.exclude, (pattern) => {
-                return minimatch(path, pattern, { dot: true });
-            });
-        });
-    })
-        .then((paths) => {
+    return __awaiter(this, void 0, void 0, function* () {
+        const excludeDirectories = (path) => !fs.statSync(path).isDirectory();
+        const excludeBlacklistedFiles = (path) => config.exclude.some(pattern => minimatch(path, pattern, { dot: true }));
+        log("Create CRCs:");
         const filelist = {};
-        for (let pathname of paths) {
+        const pathname = `${config.path}/${config.files || '**/**'}`;
+        const paths = glob.sync(pathname);
+        const filePaths = _(paths)
+            .filter(excludeDirectories)
+            .uniq()
+            .compact()
+            .filter(excludeBlacklistedFiles)
+            .value();
+        for (let pathname of filePaths) {
             filelist[pathname] = crc.crc32(fs.readFileSync(pathname));
         }
         return filelist;
     });
 }
 function startup(options) {
-    if (!options) {
-        options = {};
-    }
-    opts = _.defaults(options, opts);
-    return getConfig(opts)
-        .then((conf) => {
-        if (conf == null) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!options) {
+            options = {};
+        }
+        opts = _.defaults(options, opts);
+        const conf = yield getConfig(options);
+        if (conf == null)
             throw new Error("Local config not found.");
-        }
-        if (!conf.local) {
+        if (!conf.local)
             throw new Error("Invalid config, 'local' section missing.");
-        }
         conf._target = conf.targets[opts.stage || 'staging'];
-        if (!conf._target) {
+        if (!conf._target)
             throw new Error(`Target '${opts.stage || 'staging'}' section missing.`);
-        }
         conf._target.cache = conf._target.cache || '.synco-filelist';
-        return conf;
-    })
-        .then((conf) => {
+        // Assign global
         config = conf;
-        return connect(conf._target);
-    })
-        .then((conn) => {
+        const conn = yield connect(conf._target);
         console.log(`Connected to ${config._target.host}`);
         return conn;
     });
 }
-function cleanup() {
+function cleanup(data) {
     conn && conn.raw && conn.raw.quit && conn.raw.quit((err, data) => {
         if (err != null) {
             console.error(err);
         }
     });
+    return data;
+}
+function cleanupAndRethrowError(err) {
+    cleanup();
+    throw err;
 }
 function remoteFileExists(remotePath) {
     return new Promise((resolve, reject) => {
-        conn.raw.size(remotePath, (err, size) => {
-            // log "SIZE OF", remotePath, "IS", size
-            if (err) {
-                resolve(false);
-            }
-            else {
-                resolve(true);
-            }
-        });
+        conn.raw.size(remotePath, (err, size) => resolve(!err));
     });
 }
 function initializeServerConfiguration() {
@@ -264,7 +233,7 @@ function initializeServerConfiguration() {
         return verifyRemoteDirectory(path.dirname(remotePath))
             .then(function (success) {
             if (success) {
-                putContent("{}", remotePath); //,
+                putContent("{}", remotePath);
             }
             else {
                 console.error("Directory error.");
@@ -275,13 +244,12 @@ function initializeServerConfiguration() {
 }
 function doFileSync(dryRun) {
     log("Connected to server.");
-    return Promise.all([
+    return Promise
+        .all([
         getRemoteFilelist(config._target),
         buildLocalFilelist(config.local)
     ])
-        .then((results) => {
-        const remoteFiles = results[0];
-        const localFiles = results[1];
+        .then(([remoteFiles, localFiles]) => {
         log("Remote filelist:", remoteFiles);
         log("Local filelist:", localFiles);
         const changeset = {
@@ -331,7 +299,7 @@ function doFileSync(dryRun) {
     })
         .then((changedFiles) => {
         log("Changed files:", changedFiles);
-        let current = Promise.resolve({}); // fulfilled()
+        let current = Promise.resolve({});
         console.log("Uploading %s files...", changedFiles.length);
         return Promise
             .all(changedFiles.map((filename) => {
@@ -347,7 +315,7 @@ function doFileSync(dryRun) {
             const remotePath = `${config._target.path}/${config._target.cache}`;
             log("Updating remote filelist:", remotePath);
             return verifyRemoteDirectory(path.dirname(remotePath))
-                .then(function (success) {
+                .then((success) => {
                 if (success) {
                     putContent(JSON.stringify(changedFiles, null, 2), remotePath);
                 }
@@ -382,7 +350,7 @@ function check(options) {
         log("Looking for", remotePath);
         return remoteFileExists(remotePath);
     })
-        .then(function (exists) {
+        .then((exists) => {
         if (exists) {
             console.log(`${config._target.host} appears ready to sync.`);
         }
@@ -390,7 +358,8 @@ function check(options) {
             console.log(`It looks like you need to run sync:init for ${config._target.host}`);
         }
     })
-        .finally(cleanup);
+        .then(cleanup)
+        .catch(cleanupAndRethrowError);
 }
 exports.check = check;
 /**
@@ -429,7 +398,8 @@ function init(options) {
             throw err;
         }
     })
-        .finally(cleanup);
+        .then(cleanup)
+        .catch(cleanupAndRethrowError);
 }
 exports.init = init;
 /**
@@ -441,14 +411,15 @@ function changed(options) {
         const remotePath = `${config._target.path}/${config._target.cache}`;
         return remoteFileExists(remotePath);
     })
-        .then((is_configured) => {
-        if (!is_configured) {
+        .then((isConfigured) => {
+        if (!isConfigured) {
             throw new Error(`${config._target.host} doesn't appear to be configured. Run sync:init.`);
         }
-        return is_configured;
+        return isConfigured;
     })
         .then(() => doFileSync(true))
-        .finally(cleanup);
+        .then(cleanup)
+        .catch(cleanupAndRethrowError);
 }
 exports.changed = changed;
 /**
@@ -463,14 +434,15 @@ function run(options) {
         const remotePath = `${config._target.path}/${config._target.cache}`;
         return remoteFileExists(remotePath);
     })
-        .then((is_configured) => {
-        if (!is_configured) {
+        .then((isConfigured) => {
+        if (!isConfigured) {
             throw new Error(`${config._target.host} doesn't appear to be configured. Run sync:init.`);
         }
-        return is_configured;
+        return isConfigured;
     })
         .then(() => doFileSync(false))
-        .finally(cleanup);
+        .then(cleanup)
+        .catch(cleanupAndRethrowError);
 }
 exports.run = run;
 function listTargets(options) {
