@@ -1,6 +1,6 @@
 {
   "name": "syncodemayo",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A simple FTP syncing tool",
   "main": "index.js",
   "bin": {
