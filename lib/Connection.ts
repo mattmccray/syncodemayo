@@ -65,9 +65,20 @@ export class Connection {
   }
 
   async putFile(filename: string, remotePath: string) {
-    const buffer = await readLocalFile(filename)
+    const buffer = await readLocalFile(filename, true)
     await this.putBuffer(buffer, remotePath)
     return remotePath
+  }
+
+  deleteRemoteFile(remotePath: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this._ftpConn.raw('dele', remotePath, function (err: Error, data: any) {
+        if (err) console.log("Error removing", remotePath, err.message)
+
+        if (err) resolve(false)
+        else resolve(true)
+      })
+    })
   }
 
   close() {

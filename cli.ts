@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --harmony
 
 import * as dotenv from 'dotenv'
 import * as CLI from './lib/Cli'
@@ -6,7 +6,7 @@ import * as program from 'commander'
 
 dotenv.config()
 
-const defaultTarget = 'staging'
+const defaultTarget = undefined
 let syncTarget: string | undefined = undefined
 let command = 'help'
 
@@ -47,9 +47,10 @@ program
   .command('sync [target]')
   .alias('s')
   .description("Perform sync to server")
-  .action((target: string | null) => {
+  .option('-f, --force', "Don't prompt before uploading.", false)
+  .action((target: string | null, options: any) => {
     syncTarget = target || defaultTarget
-    command = 'sync'
+    command = options.force ? 'syncf' : 'sync'
   })
 
 program
@@ -62,13 +63,13 @@ program
 
 program.parse(process.argv);
 
-console.log(`Performing '${command}' on target: ${syncTarget || 'app'}`)
+console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n`)
 
 
 switch (command) {
 
   case "changes":
-    CLI.changed(program.config, syncTarget).then(showDone).catch(showError)
+    CLI.changes(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "check":
@@ -84,16 +85,21 @@ switch (command) {
     break;
 
   case "sync":
-    CLI.sync(program.config, syncTarget).then(showDone).catch(showError)
+    CLI.sync(program.config, syncTarget, false).then(showDone).catch(showError)
+    break
+  case "syncf":
+    CLI.sync(program.config, syncTarget, true).then(showDone).catch(showError)
     break
 
   case "help":
   default:
+    syncTarget = "app"
     program.help()
 }
 
 function showDone() {
-  console.log("\nDone.\n")
+  console.log("\nDone.")
+  process.exit(0)
 }
 
 function showError(err: any) {
@@ -101,4 +107,5 @@ function showError(err: any) {
   if (program.verbose) {
     console.error(err)
   }
+  process.exit(1)
 }

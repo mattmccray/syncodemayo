@@ -59,6 +59,7 @@ typings/
 
 **/*.js
 **/*.d.ts
+**/*.map
 
 !missing-types.d.ts
 

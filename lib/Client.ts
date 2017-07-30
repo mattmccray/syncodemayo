@@ -8,9 +8,14 @@ export class Client {
   private _path: string | undefined
   hasConfig: boolean | null = null
   config: IConfig
+  loadError: Error
   whenReady: Promise<Client>
 
   DEFAULT_CONFIG = "syncodemayo.json"
+
+  get hasError() {
+    return !!this.loadError
+  }
 
   constructor(preferredPath: string | undefined) {
     this._path = preferredPath
@@ -20,13 +25,13 @@ export class Client {
           this.config = config
           this._path = this.config._path
           this.hasConfig = true
-          return this
+          resolve(this)
         })
-        .catch((err) => {
+        .catch((err: Error) => {
+          if (err.message.indexOf('Schema Error')) this.loadError = err
           this.hasConfig = false
-          return this
+          resolve(this)
         })
-        .then((client) => resolve)
     })
   }
 

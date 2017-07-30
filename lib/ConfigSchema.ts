@@ -6,6 +6,7 @@ export const localSchema = joi.object({
   files: joi.string(),
   exclude: joi.array().items(joi.string()),
   defaultTarget: joi.string(),
+  deleteRemoteFiles: joi.bool(),
 })
 
 export const targetSchema = joi.object({
@@ -21,7 +22,7 @@ export const targetSchema = joi.object({
 export const configSchema = joi.object({
   local: localSchema.required(),
   targets: joi.object().pattern(/.*/, targetSchema).required()
-})
+}).unknown(true)
 
 export async function validateConfig(config: IConfig): Promise<IConfig> {
   const result = configSchema.validate(config)

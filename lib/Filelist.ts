@@ -14,8 +14,9 @@ export async function localFileExists(path: string): Promise<boolean> {
   return fs.existsSync(path)
 }
 
-export async function readLocalFile(path: string): Promise<string> {
-  return fs.readFileSync(path).toString()
+export async function readLocalFile(path: string, asBuffer = false): Promise<string | Buffer> {
+  const buff = fs.readFileSync(path)
+  return asBuffer ? buff : buff.toString()
 }
 
 export async function writeLocalFile(path: string, content: string): Promise<any> {
@@ -39,7 +40,7 @@ export async function buildLocalFilelist(config: ILocalConfig): Promise<IFilelis
   const excludeDirectories = (path: string) =>
     !fs.statSync(path).isDirectory()
   const excludeBlacklistedFiles = (path: string) =>
-    config.exclude.some(pattern => minimatch(path, pattern, { dot: true }))
+    !config.exclude.some(pattern => minimatch(path, pattern, { dot: true }))
 
   // log("Create CRCs:")
   const filelist: IFilelist = {}

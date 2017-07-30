@@ -1,20 +1,30 @@
 import { Client } from './Client'
 
 
-export async function changed(configPath?: string, target?: string) {
+export async function changes(configPath?: string, target?: string) {
   const client = await Client.create(configPath)
   const changeset = await client.getTargetServer(target).sync(true)
+  if (changeset == null) throw new Error("Change detection failed.")
 
-  if (changeset.added.length > 0) {
+  const added = changeset.added.length
+  const changed = changeset.changed.length
+  const removed = changeset.removed.length
+
+  if (added + changed + removed === 0) {
+    console.log("No changes detected.")
+    return true
+  }
+
+  if (added > 0) {
     console.log("New Local Files: (%s)", changeset.added.length)
     changeset.added.forEach(f => console.log(" -", f))
   }
-  if (changeset.changed.length > 0) {
+  if (changed > 0) {
     console.log("Changed Local Files: (%s)", changeset.changed.length)
     changeset.changed.forEach(f => console.log(" -", f))
   }
-  if (changeset.removed.length > 0) {
-    console.log("Removed Local Files (not handled yet): (%s)", changeset.removed.length)
+  if (removed > 0) {
+    console.log(`Removed Local Files${client.config.local.deleteRemoteFiles ? '' : ' (disabled)'}: (%s)`, changeset.removed.length)
     changeset.removed.forEach(f => console.log(" -", f))
   }
 
@@ -23,13 +33,25 @@ export async function changed(configPath?: string, target?: string) {
 
 export async function check(configPath?: string, target?: string) {
   const client = await Client.create(configPath)
-  const isServerConfigured = await client.getTargetServer(target).verify()
+
+  if (client.hasError) {
+    throw client.loadError
+  }
+
+  if (!client.hasConfig && !client.hasError) {
+    console.log("This directory isn't configured for SyncoDeMayo!")
+    return false
+  }
+
+  const targetServer = client.getTargetServer(target)
+  const isServerConfigured = await targetServer.verify()
 
   if (isServerConfigured) {
-    console.log("You're server is ready for syncing.")
+    console.log("Target", JSON.stringify(targetServer.name), "is ready for syncing.")
   }
   else {
-    console.log("That server isn't configured, run init.")
+    console.log("Target", JSON.stringify(targetServer.name), "isn't configured, run init.")
+    return false
   }
 
   return true
@@ -63,18 +85,25 @@ export async function ls(configPath?: string) {
 
   console.log("Defined server targets:")
   targets.forEach(name => {
-    console.log(" -", name)
+    const target = client.config.targets[name]
+    const bullet = client.config.local.defaultTarget === target._name
+      ? " *"
+      : " -"
+    console.log(bullet, name, `(${target.host}:${target.path})`)
   })
 
   return true
 }
 
-export async function sync(configPath?: string, target?: string) {
+export async function sync(configPath?: string, target?: string, forceConfirmation: boolean = false) {
   const client = await Client.create(configPath)
-  const changes = await client.getTargetServer(target).sync(false)
+  const changes = await client.getTargetServer(target).sync(false, forceConfirmation)
 
-  console.log("- %s files uploaded.", changes.added.length + changes.changed.length)
-  console.log("- %s files removed. (not yet)", changes.removed.length)
+  if (changes != null) {
+    console.log("\nSummary:")
+    console.log("- %s files uploaded.", changes.added.length + changes.changed.length)
+    console.log(`- %s files removed. ${client.config.local.deleteRemoteFiles ? '' : '(disabled)'}`, changes.removed.length)
+  }
 
   return true
 }

@@ -22,12 +22,12 @@ export class Sync {
     this._target = resolveTarget(config, target)
   }
 
-  async run(isDryRun = false): Promise<IChangeset> {
+  async run(isDryRun = false, forceConfirmation = false): Promise<IChangeset | null> {
     const { localFiles, remoteFiles } = await this._getFilelists(this._config.local, this._target, this._conn)
     const changeset = this._buildChangeset(localFiles, remoteFiles)
     const filesToUpload = [...changeset.added, ...changeset.changed]
 
-    if (isDryRun || filesToUpload.length === 0) {
+    if (isDryRun || (filesToUpload.length === 0 && changeset.removed.length === 0)) {
       return changeset
     }
 
@@ -41,30 +41,69 @@ export class Sync {
       return true
     }
 
-    const confirmed = await this._confirmUpload(this._target)
+    console.log("\n%s files to upload...", filesToUpload.length)
+    console.log("%s files to remove...\n", changeset.removed.length)
+
+    const confirmed = forceConfirmation === true
+      ? true
+      : await this._confirmUpload(this._target, filesToUpload.length)
 
     if (!confirmed) {
       console.error("Canceled upload.")
-      return changeset
+      return null //changeset
     }
 
     // log("Changed files:", changedFiles)
     console.log("Uploading %s files...", filesToUpload.length)
 
-    await Promise.all(
-      filesToUpload.map(async (filePath: string) => {
+    let sequentialUploader: any = Promise.resolve(true)
+
+    filesToUpload.forEach((filePath: string) => {
+      sequentialUploader = sequentialUploader.then(async () => {
         const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
         const remoteDir = path.dirname(remotePath)
+        const localPath = path.resolve(filePath)
 
         await verifyDirExists(remoteDir)
-        await this._conn.putFile(filePath, remotePath)
-        return filePath
+        // console.log(" ->", filePath, `(${remotePath} -> ${localPath})`)
+        await this._conn.putFile(localPath, remotePath)
+        return true
       })
-    )
+    })
+
+    debugger
+
+    if (this._config.local.deleteRemoteFiles && changeset.removed.length > 0) {
+      changeset.removed.forEach((filePath: string) => {
+        sequentialUploader = sequentialUploader.then(async () => {
+          const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
+          console.log(" X", remotePath)
+          const didDelete = await this._conn.deleteRemoteFile(remotePath)
+          if (!didDelete) console.log("   -> Error deleting file")
+          return true
+        })
+      })
+    }
+
+    await sequentialUploader
+
+    // await Promise.all(
+    //   filesToUpload.map(async (filePath: string) => {
+    //     const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
+    //     const remoteDir = path.dirname(remotePath)
+
+    //     console.log(" ?", remoteDir)
+    //     await verifyDirExists(remoteDir)
+    //     console.log(" -", filePath)
+    //     await this._conn.putFile(filePath, remotePath)
+    //     return filePath
+    //   })
+    // )
 
     const remoteCachePath = `${this._target.path}/${this._target.cache}`
     // log("Updating remote filelist:", remoteCachePath)
     await verifyDirExists(path.dirname(remoteCachePath))
+    // console.log(" ->", remoteCachePath)
     await this._conn.putContent(
       JSON.stringify(localFiles, null, 2),
       remoteCachePath
@@ -73,7 +112,7 @@ export class Sync {
     return changeset
   }
 
-  private _confirmUpload(target: ITargetConfig): Promise<boolean> {
+  private _confirmUpload(target: ITargetConfig, fileCount: number): Promise<boolean> {
     // If no prompt is specified, auto-confirm upload!
     return new Promise(resolve => {
       if (!target.prompt) return resolve(true)
@@ -107,16 +146,17 @@ export class Sync {
     // Build list of files that need to be uploaded...
     Object.keys(localFiles).forEach((localFilename: string) => {
       const localHash = localFiles[localFilename]
+      const remoteHash = remoteFiles[localFilename]
 
+      // Local hash not in remote cache
       if (!(localFilename in remoteFiles)) {
         changeset.added.push(localFilename)
       }
-      else if (remoteFiles[localFilename] != localHash) {
+      // Local hash unequal to remote cache
+      else if (remoteHash != localHash) {
         changeset.changed.push(localFilename)
       }
-      else {
-        throw new Error("What the hell?")
-      }
+      // Local hash and remote hash are equal!
     })
     // Build list of files to be removed from the server...
     Object.keys(remoteFiles).forEach((remoteFilename) => {

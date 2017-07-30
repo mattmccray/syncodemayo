@@ -222,9 +222,9 @@ core-util-is@~1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
 
-crc@2.1.1:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/crc/-/crc-2.1.1.tgz#18ebc6327af56b594b1fbf93677dd083807d7803"
+crc@3.4.1:
+  version "3.4.1"
+  resolved "https://registry.yarnpkg.com/crc/-/crc-3.4.1.tgz#65d5830b1a2569557cfb324c0e679998521473ee"
 
 cross-spawn@^5.1.0:
   version "5.1.0"

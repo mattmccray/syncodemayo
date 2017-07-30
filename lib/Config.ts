@@ -1,5 +1,6 @@
 import { resolve as resolvePath } from 'path'
 import { validateConfig } from './ConfigSchema'
+import { localFileExists } from './Filelist'
 
 export interface IConfig {
   local: ILocalConfig
@@ -12,6 +13,7 @@ export interface ILocalConfig {
   files: string
   exclude: string[]
   defaultTarget: string
+  deleteRemoteFiles: boolean
 }
 
 export interface ITargetConfig {
@@ -30,6 +32,9 @@ async function evalConfigFromFile(pathname: string): Promise<IConfig> {
     throw new Error(`Path must be a string. Got a ${typeof pathname}`)
 
   const fullpath = resolvePath("./" + pathname)
+  if (!localFileExists(fullpath))
+    throw new Error("SKIP")
+
   const data = require(fullpath) as IConfig
 
   if (typeof data === 'object')
@@ -47,21 +52,25 @@ export function loadConfigFile(preferredPath?: string): Promise<IConfig> {
     const potentialConfigs = (!!preferredPath)
       ? [preferredPath]
       : [
-        '.syncodemayo.json',
         'syncodemayo.json',
-        '.syncodemayo.js',
+        '.syncodemayo.json',
         'syncodemayo.js',
+        '.syncodemayo.js',
         '.syncodemayo',
-        '.sync-config',
         'sync-config.json',
-        'sync-config.js'
+        'sync-config.js',
+        '.sync-config',
       ]
     const tryLoading = (path: string | undefined) => {
       if (!!path) {
         evalConfigFromFile(path)
           .then(resolve)
-          .catch(err =>
-            tryLoading(potentialConfigs.shift()))
+          .catch(err => {
+            if (err.message === "SKIP")
+              tryLoading(potentialConfigs.shift())
+            else
+              reject(err)
+          })
       }
       else {
         reject(new Error("Local config not found."))
@@ -80,6 +89,7 @@ async function massageConfigData(config: IConfig): Promise<IConfig> {
   config.local.files = config.local.files || '**/**'
   config.local.exclude = config.local.exclude || []
   config.local.defaultTarget = config.local.defaultTarget || "staging"
+  config.local.deleteRemoteFiles = config.local.deleteRemoteFiles === true
 
   Object.keys(config.targets).forEach(name => {
     const target = config.targets[name]
@@ -89,19 +99,25 @@ async function massageConfigData(config: IConfig): Promise<IConfig> {
     if (typeof target.prompt === 'undefined')
       target.prompt = true
   })
+
   return config
 }
 
 export function resolvePassword(targetConfig: ITargetConfig): string {
-  return targetConfig.pass || process.env[`${targetConfig._name.toUpperCase()}_PWD`] as string
+  const password = targetConfig.pass || process.env[`${targetConfig._name.toUpperCase()}_PWD`] as string
+  if (typeof password === 'undefined') {
+    throw new Error("Cannot find password for target: " + targetConfig._name)
+  }
+  return password
 }
 
 export function resolveTarget(config: IConfig, name: string | ITargetConfig | undefined): ITargetConfig {
   if (typeof name === 'undefined') name = config.local.defaultTarget
   if (typeof name === 'object') return name
 
-  const targetName = Object.keys(config.targets).find(name => {
-    return name.toUpperCase() === config.targets[name]._name.toUpperCase()
+  const lookingFor = name as string
+  const targetName = Object.keys(config.targets).find(namedTarget => {
+    return lookingFor.toUpperCase() === config.targets[namedTarget]._name.toUpperCase()
   })
 
   if (!targetName) {
