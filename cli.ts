@@ -12,7 +12,7 @@ let command = 'help'
 
 program
   .version('1.0.0')
-  .option('-c, --config [file]', 'Specify local config [file]', '.syncodemayo.json')
+  .option('-c, --config [file]', 'Specify local config [file]')
 // .option('-v, --verbose', 'Verbose logging')
 
 program
