@@ -61,5 +61,7 @@ typings/
 **/*.d.ts
 **/*.map
 
+.vscode/launch.json
+
 !missing-types.d.ts
 
