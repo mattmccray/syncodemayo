@@ -18,8 +18,7 @@ program
 program
   .command('init [target]')
   .description("Configure local folder and/or server to sync")
-  .alias('i')
-  .option('-f, --force', 'Force upload of initial cache file')
+  // .option('-f, --force', 'Force upload of initial cache file')
   .action((target: string | null) => {
     syncTarget = target || defaultTarget
     command = 'init'
@@ -27,7 +26,9 @@ program
 
 program
   .command('changes [target]')
-  .alias('a')
+  .alias('c')
+  .alias('d')
+  .alias('diff')
   .description("Perform sync dry run and display the changes")
   .action((target: string | null) => {
     syncTarget = target || defaultTarget
@@ -35,9 +36,8 @@ program
   })
 
 program
-  .command('check [target]')
-  .alias('c')
-  .description("Check if server is configured")
+  .command('verify [target]')
+  .description("Verify server is configured")
   .action((target: string | null) => {
     syncTarget = target || defaultTarget
     command = 'check'
@@ -45,7 +45,7 @@ program
 
 program
   .command('sync [target]')
-  .alias('s')
+  // .alias('s')
   .description("Perform sync to server")
   .option('-f, --force', "Don't prompt before uploading.", false)
   .action((target: string | null, options: any) => {
@@ -55,39 +55,42 @@ program
 
 program
   .command('ls')
-  .alias('l')
   .description("List defined targets in config")
   .action(() => {
     command = "ls"
   })
 
 program.parse(process.argv);
-
-console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n`)
-
+// console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n`)
 
 switch (command) {
 
   case "changes":
+    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.changes(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "check":
+    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.check(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "init":
+    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.init(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "ls":
+    console.log(`Performing '${command}'...\n`)
     CLI.ls(program.config).then(showDone).catch(showError)
     break;
 
   case "sync":
+    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n...`)
     CLI.sync(program.config, syncTarget, false).then(showDone).catch(showError)
     break
   case "syncf":
+    console.log(`Performing (forced) 'sync' on target: ${syncTarget || '(default)'}\n...`)
     CLI.sync(program.config, syncTarget, true).then(showDone).catch(showError)
     break
 

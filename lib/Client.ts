@@ -9,12 +9,13 @@ export class Client {
   hasConfig: boolean | null = null
   config: IConfig
   loadError: Error
+  parseError: Error
   whenReady: Promise<Client>
 
   DEFAULT_CONFIG = "syncodemayo.json"
 
   get hasError() {
-    return !!this.loadError
+    return !!this.loadError || !!this.parseError
   }
 
   constructor(preferredPath: string | undefined) {
@@ -29,6 +30,8 @@ export class Client {
         })
         .catch((err: Error) => {
           if (err.message.indexOf('Schema Error')) this.loadError = err
+          if (err.message.indexOf('JSON')) this.parseError = err
+          // debugger
           this.hasConfig = false
           resolve(this)
         })
@@ -47,7 +50,15 @@ export class Client {
 
   async getTargetNames(): Promise<string[]> {
     if (this.hasConfig === null) throw new Error("Config not loaded yet.")
-    if (this.hasConfig === false) throw new Error("This directory has no SyncoDeMayo config.")
+    if (this.hasConfig === false) {
+      if (this.hasError) {
+        const error = this.loadError || this.parseError
+        throw error
+      }
+      else {
+        throw new Error("This directory has no SyncoDeMayo config.")
+      }
+    }
     return Object.keys(this.config.targets)
   }
 

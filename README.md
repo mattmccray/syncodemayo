@@ -32,7 +32,6 @@ Suggested usage as NPM script:
 
 ```
 $ syncodemayo
-Performing 'help' on target: app
 
   Usage: syncodemayo [options] [command]
 
@@ -46,11 +45,11 @@ Performing 'help' on target: app
 
   Commands:
 
-    init|i [options] [target]  Configure local folder and/or server to sync
-    changes|a [target]         Perform sync dry run and display the changes
-    check|c [target]           Check if server is configured
-    sync|s [target]            Perform sync to server
-    ls|l                       List defined targets in config
+    init [target]            Configure local folder and/or server to sync
+    changes|diff [target]    Perform sync dry run and display the changes
+    verify [target]          Verify server is configured
+    sync [options] [target]  Perform sync to server
+    ls                       List defined targets in config
 ```
 
 
@@ -62,7 +61,8 @@ Example `syncodemayo.json` config:
     "path": "public",
     "files": "**/**",
     "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"],
-    "defaultTarget": "staging"
+    "defaultTarget": "staging",
+    "deleteRemoteFiles": true // Defaults to false
   },
 
   "targets": {

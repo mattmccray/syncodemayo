@@ -11,20 +11,20 @@ export async function changes(configPath?: string, target?: string) {
   const removed = changeset.removed.length
 
   if (added + changed + removed === 0) {
-    console.log("No changes detected.")
+    console.log("\nNo changes detected.")
     return true
   }
 
   if (added > 0) {
-    console.log("New Local Files: (%s)", changeset.added.length)
+    console.log("\nNew Local Files: (%s)", changeset.added.length)
     changeset.added.forEach(f => console.log(" -", f))
   }
   if (changed > 0) {
-    console.log("Changed Local Files: (%s)", changeset.changed.length)
+    console.log("\nChanged Local Files: (%s)", changeset.changed.length)
     changeset.changed.forEach(f => console.log(" -", f))
   }
   if (removed > 0) {
-    console.log(`Removed Local Files${client.config.local.deleteRemoteFiles ? '' : ' (disabled)'}: (%s)`, changeset.removed.length)
+    console.log(`\nRemoved Local Files${client.config.local.deleteRemoteFiles ? '' : ' (disabled)'}: (%s)`, changeset.removed.length)
     changeset.removed.forEach(f => console.log(" -", f))
   }
 
@@ -89,7 +89,7 @@ export async function ls(configPath?: string) {
     const bullet = client.config.local.defaultTarget === target._name
       ? " *"
       : " -"
-    console.log(bullet, name, `(${target.host}:${target.path})`)
+    console.log(bullet, name, `\t(${target.user}@${target.host}:${target.path})`)
   })
 
   return true
