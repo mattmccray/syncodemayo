@@ -2,7 +2,6 @@ import * as glob from 'glob'
 import * as minimatch from 'minimatch'
 import * as crc from 'crc'
 import * as fs from 'fs'
-import * as _ from 'lodash'
 import { ILocalConfig, ITargetConfig } from './Config'
 import { Connection } from './Connection'
 
@@ -37,24 +36,18 @@ export function getRemoteFilelist(target: ITargetConfig, conn: Connection): Prom
 }
 
 export async function buildLocalFilelist(config: ILocalConfig): Promise<IFilelist> {
+  // Create the CRCs...
   const excludeDirectories = (path: string) =>
     !fs.statSync(path).isDirectory()
   const excludeBlacklistedFiles = (path: string) =>
     !config.exclude.some(pattern => minimatch(path, pattern, { dot: true }))
 
-  // log("Create CRCs:")
-  const filelist: IFilelist = {}
-  const srcFilePattern = `${config.path}/${config.files}`
-  const filePaths = _(glob.sync(srcFilePattern))
+  return glob
+    .sync(`${config.path}/${config.files}`)
     .filter(excludeDirectories)
-    .uniq()
-    .compact()
     .filter(excludeBlacklistedFiles)
-    .value()
-
-  for (let path of filePaths) {
-    filelist[path] = crc.crc32(fs.readFileSync(path))
-  }
-
-  return filelist
+    .reduce((hash: any, filepath: string) => {
+      hash[filepath] = crc.crc32(fs.readFileSync(filepath))
+      return hash
+    }, {}) as IFilelist
 }

@@ -71,8 +71,6 @@ export class Sync {
       })
     })
 
-    debugger
-
     if (this._config.local.deleteRemoteFiles && changeset.removed.length > 0) {
       changeset.removed.forEach((filePath: string) => {
         sequentialUploader = sequentialUploader.then(async () => {

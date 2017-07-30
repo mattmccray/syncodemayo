@@ -2,10 +2,6 @@
 # yarn lockfile v1
 
 
-"@types/bluebird@^3.5.8":
-  version "3.5.8"
-  resolved "https://registry.yarnpkg.com/@types/bluebird/-/bluebird-3.5.8.tgz#242a83379f06c90f96acf6d1aeab3af6faebdb98"
-
 "@types/commander@^2.9.1":
   version "2.9.1"
   resolved "https://registry.yarnpkg.com/@types/commander/-/commander-2.9.1.tgz#d4e464425baf4685bd49dd233be11de9c00c0784"
@@ -34,10 +30,6 @@
 "@types/joi@^10.4.0":
   version "10.4.0"
   resolved "https://registry.yarnpkg.com/@types/joi/-/joi-10.4.0.tgz#a4de40cdf2462c7e1c83eb47ca3e19177bcc2ae8"
-
-"@types/lodash@^4.14.71":
-  version "4.14.71"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.71.tgz#0dc383f78981216ac76e2f2c3afd998e0450e4c1"
 
 "@types/minimatch@*", "@types/minimatch@^2.0.29":
   version "2.0.29"
@@ -134,10 +126,6 @@ babel-code-frame@^6.22.0:
 balanced-match@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
-
-bluebird@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-2.2.2.tgz#f1bf05abc887cf9a703886237c28610a43b1f114"
 
 brace-expansion@^1.1.7:
   version "1.1.8"
@@ -618,10 +606,6 @@ levn@^0.3.0, levn@~0.3.0:
   dependencies:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
-
-lodash@2.4.1:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-2.4.1.tgz#5b7723034dda4d262e5a46fb2c58d7cc22f71420"
 
 lodash@^4.0.0, lodash@^4.17.4, lodash@^4.3.0:
   version "4.17.4"

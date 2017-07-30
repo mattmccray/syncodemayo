@@ -31,7 +31,6 @@ export class Client {
         .catch((err: Error) => {
           if (err.message.indexOf('Schema Error')) this.loadError = err
           if (err.message.indexOf('JSON')) this.parseError = err
-          // debugger
           this.hasConfig = false
           resolve(this)
         })

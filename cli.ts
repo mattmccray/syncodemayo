@@ -26,8 +26,6 @@ program
 
 program
   .command('changes [target]')
-  .alias('c')
-  .alias('d')
   .alias('diff')
   .description("Perform sync dry run and display the changes")
   .action((target: string | null) => {
@@ -45,7 +43,6 @@ program
 
 program
   .command('sync [target]')
-  // .alias('s')
   .description("Perform sync to server")
   .option('-f, --force', "Don't prompt before uploading.", false)
   .action((target: string | null, options: any) => {
@@ -61,7 +58,6 @@ program
   })
 
 program.parse(process.argv);
-// console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n`)
 
 switch (command) {
 
@@ -106,9 +102,9 @@ function showDone() {
 }
 
 function showError(err: any) {
-  console.error("\n(!)", err.message)
-  if (program.verbose) {
-    console.error(err)
-  }
+  console.error("\n(!)", err.message, "\n", err)
+  // if (program.verbose) {
+  //   console.error(err)
+  // }
   process.exit(1)
 }
