@@ -66,7 +66,7 @@ export class Client {
   }
 
   getTargetServer(name: string | ITargetConfig | undefined): TargetServer {
-    return TargetServer.from(this.config, name)
+    return TargetServer.create(this.config, name)
   }
 
   static create(configPath: string | undefined): Promise<Client> {

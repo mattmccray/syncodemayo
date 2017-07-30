@@ -50,10 +50,9 @@ export class Sync {
 
     if (!confirmed) {
       console.error("Canceled upload.")
-      return null //changeset
+      return null
     }
 
-    // log("Changed files:", changedFiles)
     console.log("Uploading %s files...", filesToUpload.length)
 
     let sequentialUploader: any = Promise.resolve(true)
@@ -65,7 +64,6 @@ export class Sync {
         const localPath = path.resolve(filePath)
 
         await verifyDirExists(remoteDir)
-        // console.log(" ->", filePath, `(${remotePath} -> ${localPath})`)
         await this._conn.putFile(localPath, remotePath)
         return true
       })
@@ -75,7 +73,6 @@ export class Sync {
       changeset.removed.forEach((filePath: string) => {
         sequentialUploader = sequentialUploader.then(async () => {
           const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
-          console.log(" X", remotePath)
           const didDelete = await this._conn.deleteRemoteFile(remotePath)
           if (!didDelete) console.log("   -> Error deleting file")
           return true
@@ -99,9 +96,7 @@ export class Sync {
     // )
 
     const remoteCachePath = `${this._target.path}/${this._target.cache}`
-    // log("Updating remote filelist:", remoteCachePath)
     await verifyDirExists(path.dirname(remoteCachePath))
-    // console.log(" ->", remoteCachePath)
     await this._conn.putContent(
       JSON.stringify(localFiles, null, 2),
       remoteCachePath
@@ -156,6 +151,7 @@ export class Sync {
       }
       // Local hash and remote hash are equal!
     })
+
     // Build list of files to be removed from the server...
     Object.keys(remoteFiles).forEach((remoteFilename) => {
       if (!(remoteFilename in localFiles)) {
@@ -164,5 +160,9 @@ export class Sync {
     })
 
     return changeset
+  }
+
+  static create(conn: Connection, config: IConfig, target: string | ITargetConfig) {
+    return new Sync(conn, config, target);
   }
 }

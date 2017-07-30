@@ -24,8 +24,7 @@ export async function writeLocalFile(path: string, content: string): Promise<any
 
 export function getRemoteFilelist(target: ITargetConfig, conn: Connection): Promise<IFilelist> {
   const path = `${target.path}/${target.cache}`
-  console.log(" <-", path)
-
+  // console.log(" <-", path)
   return conn.getRemoteFile(path)
     .then(JSON.parse)
     .catch((err) => {
@@ -46,8 +45,7 @@ export async function buildLocalFilelist(config: ILocalConfig): Promise<IFilelis
     .sync(`${config.path}/${config.files}`)
     .filter(excludeDirectories)
     .filter(excludeBlacklistedFiles)
-    .reduce((hash: any, filepath: string) => {
-      hash[filepath] = crc.crc32(fs.readFileSync(filepath))
-      return hash
-    }, {}) as IFilelist
+    .reduce((hash: any, filepath: string) => (
+      hash[filepath] = crc.crc32(fs.readFileSync(filepath)), hash), {}
+    ) as IFilelist
 }

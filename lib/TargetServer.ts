@@ -24,7 +24,7 @@ export class TargetServer {
    */
   async prepare(force?: boolean): Promise<boolean> {
     const remoteCachePath = `${this._targetConfig.path}/${this._targetConfig.cache}`
-    const conn = await Connection.forTarget(this._targetConfig)
+    const conn = Connection.create(this._targetConfig)
     const remoteIsConfigured = await conn.remoteFileExists(remoteCachePath)
 
     if (remoteIsConfigured && force !== true) {
@@ -47,7 +47,7 @@ export class TargetServer {
    */
   async verify(): Promise<boolean> {
     const remoteCachePath = `${this._targetConfig.path}/${this._targetConfig.cache}`
-    const conn = await Connection.forTarget(this._targetConfig)
+    const conn = Connection.create(this._targetConfig)
     const remoteIsConfigured = await conn.remoteFileExists(remoteCachePath)
 
     if (remoteIsConfigured) {
@@ -61,12 +61,11 @@ export class TargetServer {
    * Sync local files to target server
    */
   async sync(isDryRun: boolean, forceConfirmation = false): Promise<IChangeset | null> {
-    const sync = new Sync(Connection.forTarget(this._targetConfig), this._config, this._targetConfig)
+    const sync = Sync.create(Connection.create(this._targetConfig), this._config, this._targetConfig)
     return sync.run(isDryRun, forceConfirmation)
   }
 
-
-  static from(config: IConfig, targetConfig: string | ITargetConfig | undefined): TargetServer {
+  static create(config: IConfig, targetConfig: string | ITargetConfig | undefined): TargetServer {
     return new TargetServer(config, targetConfig)
   }
 }

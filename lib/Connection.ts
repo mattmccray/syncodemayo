@@ -5,6 +5,16 @@ import { readLocalFile } from './Filelist'
 
 const Ftp: any = JsFtpMkDirP(JsFtp)
 
+
+/*
+  TODO: Extract FTP from the connection to allow other connection types.. File/SFTP/S3/whatever
+*/
+
+// interface IRemoteConnection {
+//   get(filepath): Promise<string>
+//   put(filepath): Promise<boolean>
+// }
+
 export class Connection {
   private _ftpConn: any
 
@@ -18,9 +28,8 @@ export class Connection {
 
   getRemoteFile(filename: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      // log("Retrieve:", filename)
       let content = ""
-
+      console.log(" <-", filename)
       this._ftpConn.get(filename, function (err: any, socket: any) {
         if (err != null) { return reject(err) }
 
@@ -72,6 +81,7 @@ export class Connection {
 
   deleteRemoteFile(remotePath: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
+      console.log("  x", remotePath)
       this._ftpConn.raw('dele', remotePath, function (err: Error, data: any) {
         if (err) console.log("Error removing", remotePath, err.message)
 
@@ -88,7 +98,7 @@ export class Connection {
     })
   }
 
-  static forTarget(target: ITargetConfig) {
+  static create(target: ITargetConfig) {
     const pass = resolvePassword(target)
     return new Connection(target.host, target.port, target.user, pass)
   }

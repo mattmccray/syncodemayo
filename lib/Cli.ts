@@ -1,6 +1,5 @@
 import { Client } from './Client'
 
-
 export async function changes(configPath?: string, target?: string) {
   const client = await Client.create(configPath)
   const changeset = await client.getTargetServer(target).sync(true)
@@ -35,7 +34,7 @@ export async function check(configPath?: string, target?: string) {
   const client = await Client.create(configPath)
 
   if (client.hasError) {
-    throw client.loadError
+    throw client.loadError || client.parseError
   }
 
   if (!client.hasConfig && !client.hasError) {
@@ -59,6 +58,10 @@ export async function check(configPath?: string, target?: string) {
 
 export async function init(configPath?: string, target?: string) {
   const client = await Client.create(configPath)
+
+  if (!client.hasConfig && client.hasError) {
+    throw client.loadError || client.parseError
+  }
 
   if (!client.hasConfig) {
     await client.createConfig(configPath)
@@ -97,6 +100,12 @@ export async function ls(configPath?: string) {
 
 export async function sync(configPath?: string, target?: string, forceConfirmation: boolean = false) {
   const client = await Client.create(configPath)
+
+  if (!client.hasConfig) {
+    if (client.hasError) throw client.loadError || client.parseError
+    else throw new Error("This directory isn't configured for SyncoDeMayo!")
+  }
+
   const changes = await client.getTargetServer(target).sync(false, forceConfirmation)
 
   if (changes != null) {

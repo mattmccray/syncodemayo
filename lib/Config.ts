@@ -117,9 +117,9 @@ export function resolveTarget(config: IConfig, name: string | ITargetConfig | un
   if (typeof name === 'object') return name
 
   const lookingFor = name as string
-  const targetName = Object.keys(config.targets).find(namedTarget => {
-    return lookingFor.toUpperCase() === config.targets[namedTarget]._name.toUpperCase()
-  })
+  const targetName = Object.keys(config.targets).find(namedTarget => (
+    lookingFor.toUpperCase() === config.targets[namedTarget]._name.toUpperCase()
+  ))
 
   if (!targetName) {
     throw new Error("Target '" + name + "' not found.")
