@@ -58,7 +58,8 @@ export class Client {
         throw new Error("This directory has no SyncoDeMayo config.")
       }
     }
-    return Object.keys(this.config.targets)
+    return Object.keys(this.config.targets).filter(name =>
+      this.config.targets[name].enabled)
   }
 
   getTargetConfig(name: string | undefined): ITargetConfig {

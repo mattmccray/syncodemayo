@@ -1,6 +1,8 @@
 import { resolve as resolvePath } from 'path'
 import { validateConfig } from './ConfigSchema'
-import { localFileExists } from './Filelist'
+import { localFileExists, readLocalFile } from './Filelist'
+import * as stripJsonComments from 'strip-json-comments'
+
 
 export interface IConfig {
   local: ILocalConfig
@@ -25,6 +27,8 @@ export interface ITargetConfig {
   cache: string
   prompt?: boolean | string
   _name: string
+  enabled?: boolean
+  type?: string
 }
 
 async function evalConfigFromFile(pathname: string): Promise<IConfig> {
@@ -35,7 +39,9 @@ async function evalConfigFromFile(pathname: string): Promise<IConfig> {
   if (!localFileExists(fullpath))
     throw new Error("SKIP")
 
-  const data = require(fullpath) as IConfig
+  const source = await readLocalFile(fullpath, false) as string
+  const data = JSON.parse(stripJsonComments(source)) as IConfig
+  // const data = require(fullpath) as IConfig
 
   if (typeof data === 'object')
     data._path = fullpath
@@ -97,6 +103,8 @@ async function massageConfigData(config: IConfig): Promise<IConfig> {
     target._name = name
     target.port = target.port || 21
     target.cache = target.cache || ".synco-filelist"
+    target.enabled = target.enabled !== false
+    target.type = target.type || 'ftp' // Will support more eventually
     if (typeof target.prompt === 'undefined')
       target.prompt = true
   })
@@ -125,5 +133,11 @@ export function resolveTarget(config: IConfig, name: string | ITargetConfig | un
     throw new Error("Target '" + name + "' not found.")
   }
 
-  return config.targets[targetName]
+  const target = config.targets[targetName]
+
+  if (!target.enabled) {
+    throw new Error("Target '" + name + "' not enabled.")
+  }
+
+  return target
 }

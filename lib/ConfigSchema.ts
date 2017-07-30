@@ -17,6 +17,9 @@ export const targetSchema = joi.object({
   port: joi.number(),
   cache: joi.string(),
   prompt: joi.alternatives([joi.bool(), joi.string()]),
+  enabled: joi.bool(),
+  // For future use...
+  type: joi.string(),
 })
 
 export const configSchema = joi.object({
