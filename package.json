@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "tsc -p ./tsconfig.json && echo 'Finished compile.'",
     "version:bump": "npm version patch",
-    "prepublish": "npm run version:bump && npm run compile"
+    "prepublishOnly": "npm run version:bump && npm run compile"
   },
   "repository": {
     "type": "git",
