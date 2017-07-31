@@ -84,6 +84,11 @@ Example `syncodemayo.json` config:
       "prompt": "This is for PRODUCTION! Do you really mean it?"
     }
   }
+
+  /*
+    Note: Yes, comments are allowed in config files. 
+    SyncoDeMayo will strip them before parsing the JSON.
+  */
 }
 ```
 
@@ -97,5 +102,3 @@ PRODUCTION_PWD="Other password here"
 ```
 
 SyncoDeMayo will automatically look in your `.env` for passwords if they aren't in your config.
-
-**Note**: Comments *are* allowed in config JSON files.

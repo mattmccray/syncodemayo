@@ -41,7 +41,6 @@ async function evalConfigFromFile(pathname: string): Promise<IConfig> {
 
   const source = await readLocalFile(fullpath, false) as string
   const data = JSON.parse(stripJsonComments(source)) as IConfig
-  // const data = require(fullpath) as IConfig
 
   if (typeof data === 'object')
     data._path = fullpath
@@ -60,12 +59,7 @@ export function loadConfigFile(preferredPath?: string): Promise<IConfig> {
       : [
         'syncodemayo.json',
         '.syncodemayo.json',
-        'syncodemayo.js',
-        '.syncodemayo.js',
-        '.syncodemayo',
         'sync-config.json',
-        'sync-config.js',
-        '.sync-config',
       ]
     const tryLoading = (path: string | undefined) => {
       if (!!path) {
