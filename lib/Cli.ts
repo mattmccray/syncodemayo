@@ -1,6 +1,14 @@
 import * as Log from './Log'
 import { Client } from './Client'
 
+export interface CLIFlags {
+  logLevel: Log.LogLevel
+}
+
+export function setFlags(flags: CLIFlags) {
+  Log.setLogLevel(flags.logLevel)
+}
+
 export async function changes(configPath?: string, target?: string) {
   const client = await Client.create(configPath)
   const changeset = await client.getTargetServer(target).sync(true)

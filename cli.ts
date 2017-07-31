@@ -14,7 +14,8 @@ let command = 'help'
 program
   .version('1.0.0')
   .option('-c, --config [file]', 'Specify local config [file]')
-// .option('-v, --verbose', 'Verbose logging')
+  .option('-v, --verbose', 'Verbose logging', false)
+  .option('-q, --quiet', 'Minimal logging', false)
 
 program
   .command('init [target]')
@@ -60,34 +61,43 @@ program
 
 program.parse(process.argv);
 
+CLI.setFlags({
+  logLevel: program.verbose
+    ? Log.LogLevel.Debug
+    : program.quiet
+      ? Log.LogLevel.Info
+      : Log.LogLevel.Default
+})
+
+
 switch (command) {
 
   case "changes":
-    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
+    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.changes(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "check":
-    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
+    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.check(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "init":
-    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
+    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.init(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "ls":
-    Log.log(`Performing '${command}'...\n`)
+    Log.debug(`Performing '${command}'...\n`)
     CLI.ls(program.config).then(showDone).catch(showError)
     break;
 
   case "sync":
-    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n...`)
+    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}\n...`)
     CLI.sync(program.config, syncTarget, false).then(showDone).catch(showError)
     break
   case "syncf":
-    Log.log(`Performing (forced) 'sync' on target: ${syncTarget || '(default)'}\n...`)
+    Log.debug(`Performing (forced) 'sync' on target: ${syncTarget || '(default)'}\n...`)
     CLI.sync(program.config, syncTarget, true).then(showDone).catch(showError)
     break
 

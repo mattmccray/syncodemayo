@@ -52,9 +52,3 @@ function defaultLogger(level: LogLevel, args: any[]) {
     console.log(...args)
   }
 }
-
-// function setLogger(newLogger: typeof defaultLogger) {
-//   logger = newLogger
-// }
-
-// export default log
