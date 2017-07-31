@@ -47,7 +47,7 @@ $ syncodemayo
 
     init [target]            Configure local folder and/or server to sync
     changes|diff [target]    Perform sync dry run and display the changes
-    verify [target]          Verify server is configured
+    verify [target]          Verify server is correctly configured
     sync [options] [target]  Perform sync to server
     ls                       List defined targets in config
 ```
@@ -60,7 +60,7 @@ Example `syncodemayo.json` config:
   "local": {
     "path": "public", // Required, local path to sync
     "files": "**/**", // Optional, default='**/***', file glob pattern
-    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"], // Optional, default=[], glob pattern to ingnore
+    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"], // Optional, default=[], glob pattern to ignore
     "defaultTarget": "staging", // Optional, default='staging', target to use if not specified on cmd line
     "deleteRemoteFiles": true // Optional, default=false - for now...
   },
@@ -86,7 +86,7 @@ Example `syncodemayo.json` config:
   }
 
   /*
-    Note: Yes, comments are allowed in config files. 
+    Note: Yes, comments are allowed in config files.
     SyncoDeMayo will strip them before parsing the JSON.
   */
 }
