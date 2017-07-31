@@ -1,10 +1,11 @@
 #!/usr/bin/env node --harmony
 
 import * as dotenv from 'dotenv'
-import * as CLI from './lib/Cli'
-import * as program from 'commander'
-
 dotenv.config()
+
+import * as CLI from './lib/Cli'
+import * as Log from './lib/Log'
+import * as program from 'commander'
 
 const defaultTarget = undefined
 let syncTarget: string | undefined = undefined
@@ -62,31 +63,31 @@ program.parse(process.argv);
 switch (command) {
 
   case "changes":
-    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
+    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.changes(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "check":
-    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
+    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.check(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "init":
-    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
+    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
     CLI.init(program.config, syncTarget).then(showDone).catch(showError)
     break
 
   case "ls":
-    console.log(`Performing '${command}'...\n`)
+    Log.log(`Performing '${command}'...\n`)
     CLI.ls(program.config).then(showDone).catch(showError)
     break;
 
   case "sync":
-    console.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n...`)
+    Log.log(`Performing '${command}' on target: ${syncTarget || '(default)'}\n...`)
     CLI.sync(program.config, syncTarget, false).then(showDone).catch(showError)
     break
   case "syncf":
-    console.log(`Performing (forced) 'sync' on target: ${syncTarget || '(default)'}\n...`)
+    Log.log(`Performing (forced) 'sync' on target: ${syncTarget || '(default)'}\n...`)
     CLI.sync(program.config, syncTarget, true).then(showDone).catch(showError)
     break
 
@@ -97,12 +98,12 @@ switch (command) {
 }
 
 function showDone() {
-  console.log("\nDone.")
+  Log.log("\nDone.")
   process.exit(0)
 }
 
 function showError(err: any) {
-  console.error("\n(!)", err.message, "\n", err)
+  console.error("\n(!)", err.message, "\n\n", err)
   // if (program.verbose) {
   //   console.error(err)
   // }

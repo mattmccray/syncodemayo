@@ -1,5 +1,6 @@
 import * as JsFtp from 'jsftp'
 import * as JsFtpMkDirP from 'jsftp-mkdirp'
+import * as Log from './Log'
 import { ITargetConfig, resolvePassword } from './Config'
 import { readLocalFile } from './Filelist'
 
@@ -29,13 +30,13 @@ export class Connection {
   getRemoteFile(filename: string): Promise<string> {
     return new Promise((resolve, reject) => {
       let content = ""
-      console.log(" <-", filename)
+      Log.log(" <-", filename)
       this._ftpConn.get(filename, function (err: any, socket: any) {
         if (err != null) { return reject(err) }
 
         socket.on("data", (d: any) => content += d.toString())
         socket.on('error', (err: any) => {
-          console.log("Retrieval error.")
+          Log.urgent("Retrieval error.", err)
           reject(err)
         })
         socket.on("close", (connErr: any) => {
@@ -61,7 +62,7 @@ export class Connection {
 
   putBuffer(buff: any, remotePath: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      console.log(" ->", remotePath)
+      Log.log(" ->", remotePath)
       this._ftpConn.put(buff, remotePath, (err: any) => {
         if (err) reject(err)
         else resolve(true)
@@ -81,9 +82,9 @@ export class Connection {
 
   deleteRemoteFile(remotePath: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      console.log("  x", remotePath)
+      Log.log("  x", remotePath)
       this._ftpConn.raw('dele', remotePath, function (err: Error, data: any) {
-        if (err) console.log("Error removing", remotePath, err.message)
+        if (err) Log.log("Error removing", remotePath, err.message)
 
         if (err) resolve(false)
         else resolve(true)
@@ -94,7 +95,7 @@ export class Connection {
   close() {
     const conn = this._ftpConn
     conn && conn.raw && conn.raw.quit && conn.raw.quit((err: any, data: any) => {
-      if (err != null) console.error(err)
+      if (err != null) Log.urgent(err)
     })
   }
 

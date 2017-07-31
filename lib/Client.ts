@@ -1,3 +1,4 @@
+import * as Log from './Log'
 import { resolve as resolvePath } from 'path'
 import { IConfig, loadConfigFile, ITargetConfig, resolveTarget } from './Config'
 import { TargetServer } from './TargetServer'
@@ -35,6 +36,10 @@ export class Client {
           resolve(this)
         })
     })
+  }
+
+  setVerbosity(level: Log.LogLevel) {
+    Log.setLogLevel(level)
   }
 
   async createConfig(preferredPath: string | undefined): Promise<boolean> {

@@ -2,6 +2,7 @@ import * as glob from 'glob'
 import * as minimatch from 'minimatch'
 import * as crc from 'crc'
 import * as fs from 'fs'
+import * as Log from './Log'
 import { ILocalConfig, ITargetConfig } from './Config'
 import { Connection } from './Connection'
 
@@ -24,12 +25,11 @@ export async function writeLocalFile(path: string, content: string): Promise<any
 
 export function getRemoteFilelist(target: ITargetConfig, conn: Connection): Promise<IFilelist> {
   const path = `${target.path}/${target.cache}`
-  // console.log(" <-", path)
   return conn.getRemoteFile(path)
     .then(JSON.parse)
     .catch((err) => {
-      console.log("Missing or error parsing remote file list.", err)
-      console.log("\n   Run sync:init to setup SyncoDeMayo on the server.\n")
+      Log.info("Missing or error parsing remote file list.", err)
+      Log.log("\n   Run sync:init to setup SyncoDeMayo on the server.\n")
       process.exit(1)
     })
 }

@@ -68,7 +68,6 @@ export function loadConfigFile(preferredPath?: string): Promise<IConfig> {
         '.sync-config',
       ]
     const tryLoading = (path: string | undefined) => {
-      // console.log("Trying to load config:", path)
       if (!!path) {
         evalConfigFromFile(path)
           .then(resolve)

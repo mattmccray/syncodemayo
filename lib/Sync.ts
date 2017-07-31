@@ -1,6 +1,7 @@
 
 import * as path from 'path'
 import * as yesno from 'yesno'
+import * as Log from './Log'
 import { IConfig, ILocalConfig, ITargetConfig, resolveTarget } from './Config'
 import { Connection } from './Connection'
 import { IFilelist, getRemoteFilelist, buildLocalFilelist } from './Filelist'
@@ -41,19 +42,19 @@ export class Sync {
       return true
     }
 
-    console.log("\n%s files to upload...", filesToUpload.length)
-    console.log("%s files to remove...\n", changeset.removed.length)
+    Log.info("\n%s files to upload...", filesToUpload.length)
+    Log.info("%s files to remove...\n", changeset.removed.length)
 
     const confirmed = forceConfirmation === true
       ? true
       : await this._confirmUpload(this._target, filesToUpload.length)
 
     if (!confirmed) {
-      console.error("Canceled upload.")
+      Log.info("Canceled upload.")
       return null
     }
 
-    console.log("Uploading %s files...", filesToUpload.length)
+    Log.log("Uploading %s files...", filesToUpload.length)
 
     let sequentialUploader: any = Promise.resolve(true)
 
@@ -74,7 +75,7 @@ export class Sync {
         sequentialUploader = sequentialUploader.then(async () => {
           const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
           const didDelete = await this._conn.deleteRemoteFile(remotePath)
-          if (!didDelete) console.log("   -> Error deleting file")
+          if (!didDelete) Log.urgent("   -> Error deleting file")
           return true
         })
       })
@@ -87,9 +88,7 @@ export class Sync {
     //     const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
     //     const remoteDir = path.dirname(remotePath)
 
-    //     console.log(" ?", remoteDir)
     //     await verifyDirExists(remoteDir)
-    //     console.log(" -", filePath)
     //     await this._conn.putFile(filePath, remotePath)
     //     return filePath
     //   })

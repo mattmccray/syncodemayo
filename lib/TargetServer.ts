@@ -1,3 +1,4 @@
+import * as Log from './Log'
 import { IConfig, ITargetConfig, resolveTarget } from './Config'
 import { Connection } from './Connection'
 import { Sync, IChangeset } from './Sync'
@@ -28,7 +29,7 @@ export class TargetServer {
     const remoteIsConfigured = await conn.remoteFileExists(remoteCachePath)
 
     if (remoteIsConfigured && force !== true) {
-      console.log(`${this._targetConfig.host} already is initialized.`)
+      Log.info(`${this._targetConfig.host} already is initialized.`)
       return false
     }
 

@@ -55,14 +55,14 @@ $ syncodemayo
 
 Example `syncodemayo.json` config:
 
-```json
+```js
 {
   "local": {
-    "path": "public",
-    "files": "**/**",
-    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"],
-    "defaultTarget": "staging",
-    "deleteRemoteFiles": true // Defaults to false
+    "path": "public", // Required, local path to sync
+    "files": "**/**", // Optional, default='**/***', file glob pattern
+    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"], // Optional, default=[], glob pattern to ingnore
+    "defaultTarget": "staging", // Optional, default='staging', target to use if not specified on cmd line
+    "deleteRemoteFiles": true // Optional, default=false - for now...
   },
 
   "targets": {
@@ -71,9 +71,10 @@ Example `syncodemayo.json` config:
       "path": "MyApp/www/stage", // Required
       "user": "USERNAME", // Required
       "pass": "PASSWORD", // Optional, NOT RECOMMENDED! See note below for better way...
-      "port": 21, // Default
-      "cache": ".synco-filelist", // Default
-      "prompt": false // Default is true, false will upload w/o confirming
+      "port": 21, // Optional, default=21
+      "cache": ".synco-filelist", // Optional, default='.synco-filelist'
+      "prompt": false, // Optional, default=true, false will upload w/o confirming
+      "enabled": false // Optional, default=true
     },
 
     "production": {
@@ -96,3 +97,5 @@ PRODUCTION_PWD="Other password here"
 ```
 
 SyncoDeMayo will automatically look in your `.env` for passwords if they aren't in your config.
+
+**Note**: Comments *are* allowed in config JSON files.
