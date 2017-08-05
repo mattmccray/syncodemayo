@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "https://raw.githubusercontent.com/mattmccray/syncodemayo/master/config.schema.json",
   "type": "object",
   "required": [
     "local",
@@ -11,11 +12,9 @@
     },
     "targets": {
       "type": "object",
-      "oneOf": [
-        {
-          "$ref": "#/definitions/remoteTarget"
-        }
-      ]
+      "additionalProperties": {
+        "$ref": "#/definitions/remoteTarget"
+      }
     }
   },
   "additionalProperties": true,
@@ -30,19 +29,22 @@
           "type": "string"
         },
         "files": {
-          "type": "string"
+          "type": "string",
+          "default": "**/**"
         },
         "exclude": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "default": []
         },
         "defaultTarget": {
           "type": "string"
         },
         "deleteRemoteFiles": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -68,11 +70,13 @@
         },
         "port": {
           "type": "number",
-          "description": "(Default = 21)"
+          "description": "(Default = 21)",
+          "default": 21
         },
         "cache": {
           "type": "string",
-          "description": "Name of checksum list file. (Default = '.synco-filelist')"
+          "description": "Name of checksum list file. (Default = '.synco-filelist')",
+          "default": ".synco-filelist"
         },
         "prompt": {
           "oneOf": [
@@ -82,10 +86,12 @@
             {
               "type": "boolean"
             }
-          ]
+          ],
+          "default": true
         },
         "enabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "type": {
           "type": "string",
