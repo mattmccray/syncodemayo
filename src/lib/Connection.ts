@@ -1,8 +1,8 @@
-import * as JsFtp from 'jsftp'
-import * as JsFtpMkDirP from 'jsftp-mkdirp'
-import * as Log from './Log'
-import { ITargetConfig, resolvePassword } from './Config'
-import { readLocalFile } from './Filelist'
+import JsFtp from 'jsftp'
+import JsFtpMkDirP from 'jsftp-mkdirp'
+import * as Log from './Log.js'
+import { ITargetConfig, resolvePassword } from './Config.js'
+import { readLocalFile } from './Filelist.js'
 
 const Ftp: any = JsFtpMkDirP(JsFtp)
 

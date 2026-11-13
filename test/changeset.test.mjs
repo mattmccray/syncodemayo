@@ -3,8 +3,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { loadConfigFile } from '../lib/Config.js'
-import { Sync } from '../lib/Sync.js'
+import { loadConfigFile } from '../dist/lib/Config.js'
+import { Sync } from '../dist/lib/Sync.js'
 
 const SITE = 'test/fixtures/site'
 const golden = () => JSON.parse(readFileSync('test/fixtures/site.filelist.json', 'utf8'))

@@ -1,11 +1,11 @@
-#!/usr/bin/env node --harmony
+#!/usr/bin/env node
 
-import * as dotenv from 'dotenv'
+import dotenv from 'dotenv'
 dotenv.config()
 
-import * as CLI from './lib/Cli'
-import * as Log from './lib/Log'
-import * as program from 'commander'
+import * as CLI from './lib/Cli.js'
+import * as Log from './lib/Log.js'
+import program from 'commander'
 
 const defaultTarget = undefined
 let syncTarget: string | undefined = undefined

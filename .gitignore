@@ -57,13 +57,10 @@ typings/
 # dotenv environment variables file
 .env
 
-**/*.js
-**/*.d.ts
-**/*.map
+# Build output
+dist/
 
 .vscode/launch.json
-
-!missing-types.d.ts
 
 
 # Factory runtime state
