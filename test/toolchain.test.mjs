@@ -105,10 +105,17 @@ test('tsc exits 0 and emits only into its outDir, with the expected entry points
 test('package.json describes the ESM dist/ build', () => {
   assert.equal(pkg.type, 'module')
   assert.equal(pkg.engines?.node, '>=22.17')
-  assert.equal(pkg.bin?.syncodemayo, './dist/cli.js')
+  // No leading "./": npm 11 drops a bin path written that way at publish time.
+  assert.equal(pkg.bin?.syncodemayo, 'dist/cli.js')
   assert.equal(pkg.main, './dist/index.js')
   assert.equal(pkg.types, './dist/index.d.ts')
   assert.ok(pkg.files?.includes('dist'))
+})
+
+test('npm publish needs no auto-corrections to package.json', () => {
+  // npm prints these warnings on stderr, so capture both streams.
+  const out = execFileSync('sh', ['-c', 'npm publish --dry-run --ignore-scripts 2>&1'], { cwd: REPO_ROOT, encoding: 'utf8' })
+  assert.ok(!/auto-corrected|was invalid and removed/.test(out), `npm publish would rewrite package.json:\n${out}`)
 })
 
 test('package.json drops eslint and the six obsolete @types packages', () => {

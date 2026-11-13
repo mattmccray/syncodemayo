@@ -6,7 +6,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "syncodemayo": "./dist/cli.js"
+    "syncodemayo": "dist/cli.js"
   },
   "files": [
     "dist",
