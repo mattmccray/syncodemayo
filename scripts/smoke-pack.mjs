@@ -2,7 +2,7 @@
 // installs the tarball into a fresh scratch folder, and runs the installed `syncodemayo`
 // bin with --help and --version. Removes both folders when done.
 //
-// Run with `npm run smoke:pack`. Not part of `npm test` or `prepublishOnly`, because
+// Run with `bun run smoke:pack`. Not part of `bun run test` or `prepublishOnly`, because
 // installing the tarball fetches basic-ftp from the registry.
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -12,6 +12,7 @@ import { pathToFileURL } from 'node:url'
 
 const REPO_ROOT = resolve(import.meta.dirname, '..')
 const NPM = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+const BUN = process.platform === 'win32' ? 'bun.exe' : 'bun'
 
 const run = (cmd, args, cwd) =>
   execFileSync(cmd, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], shell: process.platform === 'win32' })
@@ -24,7 +25,7 @@ const packDir = mkdtempSync(join(tmpdir(), 'syncodemayo-pack-'))
 const installDir = mkdtempSync(join(tmpdir(), 'syncodemayo-install-'))
 
 try {
-  run(NPM, ['run', 'compile'], REPO_ROOT)
+  run(BUN, ['run', 'compile'], REPO_ROOT)
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'))
   const { HELP } = await import(pathToFileURL(join(REPO_ROOT, 'dist', 'lib', 'Args.js')).href)
 

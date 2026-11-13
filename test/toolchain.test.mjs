@@ -1,11 +1,11 @@
 // Checks the build and packaging toolchain: the TypeScript 5 src/ -> dist/ ESM
 // build, package.json metadata, the npm tarball contents, the CLI shebang, and
-// that CommonJS consumers can require() the ESM library. Runs after `npm test`
+// that CommonJS consumers can require() the ESM library. Runs after `bun run test`
 // has compiled dist/.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
 
@@ -150,13 +150,17 @@ test('the removed dependencies are not imported under src/ nor declared in missi
   }
 })
 
-test('jsftp and jsftp-mkdirp are not in yarn.lock', () => {
-  const lock = readFileSync(join(REPO_ROOT, 'yarn.lock'), 'utf8')
-  for (const name of ['jsftp', 'jsftp-mkdirp']) {
-    assert.ok(!new RegExp(`(^|\\n)"?${name}@`).test(lock), `yarn.lock still lists ${name}`)
+test('bun.lock is the only lockfile', () => {
+  assert.ok(existsSync(join(REPO_ROOT, 'bun.lock')), 'bun.lock is missing')
+  for (const name of ['yarn.lock', 'package-lock.json', 'pnpm-lock.yaml']) {
+    assert.ok(!existsSync(join(REPO_ROOT, name)), `${name} should not exist; bun is the package manager`)
   }
-  assert.ok(!lock.includes('jsftp'), 'yarn.lock still mentions jsftp')
-  assert.match(lock, /(^|\n)basic-ftp@/)
+})
+
+test('jsftp and jsftp-mkdirp are not in bun.lock', () => {
+  const lock = readFileSync(join(REPO_ROOT, 'bun.lock'), 'utf8')
+  assert.ok(!lock.includes('jsftp'), 'bun.lock still mentions jsftp')
+  assert.match(lock, /"basic-ftp": \["basic-ftp@/)
 })
 
 test('the in-process FTP server used by the tests is a devDependency only', () => {
@@ -180,9 +184,9 @@ test('package.json is version 2.0.0 and its scripts never bump the version', () 
 })
 
 test('prepublishOnly compiles and runs the test suite', () => {
-  // `npm test` compiles first, so it covers both.
-  assert.equal(pkg.scripts.prepublishOnly, 'npm test')
-  assert.match(pkg.scripts.test, /^npm run compile && node --test /)
+  // `bun run test` compiles first, so it covers both.
+  assert.equal(pkg.scripts.prepublishOnly, 'bun run test')
+  assert.match(pkg.scripts.test, /^bun run compile && node --test /)
 })
 
 test('package.json has the smoke:pack script, and files ships dist and CHANGELOG.md', () => {
