@@ -1,6 +1,7 @@
 # Replace the small dependencies
 
-- Status: ready
+- Status: done
+- Job: 003-replace-small-deps (merged e12f79b via epic syncodemayo-v2, 2026-11-13)
 - Sources: factory/epics/syncodemayo-v2.md
 - Date: 2026-11-13
 

@@ -1,6 +1,7 @@
 # Fix the known v1 bugs
 
-- Status: ready
+- Status: done
+- Job: 006-fix-v1-bugs (merged 9c25f51 via epic syncodemayo-v2, 2026-11-13)
 - Sources: factory/epics/syncodemayo-v2.md
 - Date: 2026-11-13
 

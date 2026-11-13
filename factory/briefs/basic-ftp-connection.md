@@ -1,6 +1,7 @@
 # basic-ftp connection with FTPS
 
-- Status: ready
+- Status: done
+- Job: 005-basic-ftp-connection (merged ffda420 via epic syncodemayo-v2, 2026-11-13)
 - Sources: factory/epics/syncodemayo-v2.md
 - Date: 2026-11-13
 

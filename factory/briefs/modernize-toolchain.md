@@ -1,6 +1,7 @@
 # Modernize the toolchain
 
-- Status: ready
+- Status: done
+- Job: 002-modernize-toolchain (merged a295dfc via epic syncodemayo-v2, 2026-11-13)
 - Sources: factory/epics/syncodemayo-v2.md
 - Date: 2026-11-13
 

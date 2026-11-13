@@ -1,6 +1,7 @@
 # Build the file list with built-ins
 
-- Status: ready
+- Status: done
+- Job: 004-builtin-filelist (merged 5293089 via epic syncodemayo-v2, 2026-11-13)
 - Sources: factory/epics/syncodemayo-v2.md
 - Date: 2026-11-13
 

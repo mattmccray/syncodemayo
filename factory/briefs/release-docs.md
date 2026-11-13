@@ -1,6 +1,7 @@
 # Release docs for 2.0
 
-- Status: ready
+- Status: done
+- Job: 007-release-docs (merged 291c8d8 via epic syncodemayo-v2, 2026-11-13)
 - Sources: factory/epics/syncodemayo-v2.md
 - Date: 2026-11-13
 

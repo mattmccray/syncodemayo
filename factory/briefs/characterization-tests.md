@@ -1,6 +1,7 @@
 # Characterization tests for v1
 
-- Status: ready
+- Status: done
+- Job: 001-characterization-tests (merged e99143b via epic syncodemayo-v2, 2026-11-13)
 - Sources: factory/epics/syncodemayo-v2.md
 - Date: 2026-11-13
 

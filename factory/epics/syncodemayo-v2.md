@@ -1,6 +1,7 @@
 # SyncoDeMayo 2.0
 
-- Status: ready
+- Status: done
+- Landed: be42a7a (2026-11-13)
 - Sources: dependency review in the session of 2026-11-13 (replaces the earlier PLAN.md draft)
 - Date: 2026-11-13
 
