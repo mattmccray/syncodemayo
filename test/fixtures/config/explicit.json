@@ -1,0 +1,32 @@
+{
+  "local": {
+    "path": "test/fixtures/site",
+    "files": "**/*.html",
+    "exclude": ["**/drafts/**"],
+    "defaultTarget": "production",
+    "deleteRemoteFiles": "true"
+  },
+  "targets": {
+    "staging": {
+      "host": "staging.example.com",
+      "user": "stage-user",
+      "path": "www/stage",
+      "port": 2121,
+      "cache": ".custom-filelist",
+      "prompt": false,
+      "type": "sftp"
+    },
+    "production": {
+      "host": "www.example.com",
+      "user": "prod-user",
+      "path": "www",
+      "prompt": "This will upload to PRODUCTION! Are you sure?"
+    },
+    "archive": {
+      "host": "archive.example.com",
+      "user": "archive-user",
+      "path": "old",
+      "enabled": false
+    }
+  }
+}
