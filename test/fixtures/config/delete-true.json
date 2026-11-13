@@ -1,0 +1,4 @@
+{
+  "local": { "path": "test/fixtures/site", "deleteRemoteFiles": true },
+  "targets": { "staging": { "host": "h", "user": "u", "path": "p" } }
+}

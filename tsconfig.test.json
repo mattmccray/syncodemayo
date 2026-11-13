@@ -1,0 +1,7 @@
+{
+  // Compiles v1 exactly as ./tsconfig.json does (it inherits every compiler
+  // option), but leaves out the factory tooling under factory/, whose cli.ts
+  // is not v1 source and does not parse with this TypeScript version.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "factory"]
+}

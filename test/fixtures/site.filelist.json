@@ -1,0 +1,9 @@
+{
+  "test/fixtures/site/assets/data.json": 262152481,
+  "test/fixtures/site/assets/img/pixel.png": 127247398,
+  "test/fixtures/site/css/style.css": 3168747682,
+  "test/fixtures/site/index.html": 1479418307,
+  "test/fixtures/site/nested/crlf.txt": 3666142676,
+  "test/fixtures/site/nested/deep/page.html": 4109864760,
+  "test/fixtures/site/sub/visible.html": 2874395311
+}
