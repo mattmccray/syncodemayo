@@ -7,7 +7,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import { loadConfigFile } from '../dist/lib/Config.js'
-import { Client } from '../dist/lib/Client.js'
+import * as CLI from '../dist/lib/Cli.js'
+import { LogLevel, setLogLevel } from '../dist/lib/Log.js'
 
 const COMMENTED = 'test/fixtures/config/commented.json'
 const EXPLICIT = 'test/fixtures/config/explicit.json'
@@ -92,19 +93,19 @@ test('loadConfigFile rejects when the preferred path does not exist', async () =
   await assert.rejects(loadConfigFile('test/fixtures/config/does-not-exist.json'))
 })
 
-// `syncodemayo init` writes a new config through Client.createConfig. (The CLI
-// path itself is blocked by the v1 Client error-classification bug in
-// known-bugs.test.mjs, so this calls the writer init uses.)
+// `syncodemayo init` in a directory with no config writes a new syncodemayo.json.
 test('init writes a new config whose local.exclude adds **/.env* to the v1 defaults', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'syncodemayo-init-'))
+  const previous = process.cwd()
+  setLogLevel(LogLevel.Urgent)
+  process.chdir(dir)
   try {
-    const configPath = join(dir, 'syncodemayo.json')
-    const client = new Client(configPath)
-    await client.whenReady
-    await client.createConfig(configPath)
-    const written = JSON.parse(readFileSync(configPath, 'utf8'))
+    assert.equal(await CLI.init(), true)
+    const written = JSON.parse(readFileSync(join(dir, 'syncodemayo.json'), 'utf8'))
     assert.deepEqual(written.local.exclude, ['**/*.map', '**/.DS_Store', '**/.git*', '**/.env*'])
   } finally {
+    process.chdir(previous)
+    setLogLevel(LogLevel.Default)
     rmSync(dir, { recursive: true, force: true })
   }
 })

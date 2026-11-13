@@ -1,12 +1,14 @@
 // An in-memory RemoteConnection for tests. It holds remote files in a Map (path -> Buffer),
 // records every call in `calls` as { op, args }, and counts close() calls.
 // `failOn(op, n, error)` makes the n-th call (1-based) of `op` reject with `error`.
+// A remote directory exists when it was passed in `options.dirs`, created by
+// remoteDirectoryExists (mkdir -p), or holds a file or another existing directory.
 import { readFileSync } from 'node:fs'
 
 export class FakeConnection {
-  constructor(files = {}) {
+  constructor(files = {}, { dirs = [] } = {}) {
     this.files = new Map(Object.entries(files).map(([path, content]) => [path, Buffer.from(content)]))
-    this.dirs = new Set()
+    this.dirs = new Set(dirs)
     this.calls = []
     this.closeCount = 0
     this._failures = []
@@ -38,6 +40,18 @@ export class FakeConnection {
   async remoteFileExists(remotePath) {
     this._record('remoteFileExists', remotePath)
     return this.files.has(remotePath)
+  }
+
+  // Whether remoteDir exists, without creating it.
+  _hasDir(remoteDir) {
+    const dir = remoteDir.replace(/\/+$/, '')
+    const inside = (path) => path.startsWith(`${dir}/`)
+    return this.dirs.has(dir) || [...this.dirs].some(inside) || [...this.files.keys()].some(inside)
+  }
+
+  async remoteDirectoryFound(remoteDir) {
+    this._record('remoteDirectoryFound', remoteDir)
+    return this._hasDir(remoteDir)
   }
 
   async remoteDirectoryExists(remoteDir) {

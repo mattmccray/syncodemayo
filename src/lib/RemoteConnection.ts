@@ -15,8 +15,15 @@ export interface RemoteConnection {
   remoteFileExists(remotePath: string): Promise<boolean>
 
   /**
+   * Whether a remote directory exists. Only reads: it never creates anything. `init` uses it to
+   * check `target.path`, which it must not create.
+   */
+  remoteDirectoryFound(remoteDir: string): Promise<boolean>
+
+  /**
    * Ensures a remote directory exists, creating it and any missing parents (mkdir -p).
-   * Resolves whether it exists afterwards.
+   * Resolves whether it exists afterwards. `Sync` uses it for subfolders under `target.path`;
+   * to check a directory without creating it, use `remoteDirectoryFound`.
    */
   remoteDirectoryExists(remoteDir: string): Promise<boolean>
 

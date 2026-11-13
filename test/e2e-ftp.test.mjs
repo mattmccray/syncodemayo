@@ -4,7 +4,7 @@
 import { after, before, describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import FtpSrv, { FileSystem } from 'ftp-srv'
@@ -133,6 +133,9 @@ function makeProject(server, targetFields = {}) {
   return { dir, site, configFile, configPath: relative(process.cwd(), configFile) }
 }
 
+// Creates a folder on the server, as a user would before running init (init never creates it).
+const makeRemoteDir = (server, remotePath) => mkdirSync(join(server.root, remotePath), { recursive: true })
+
 const targetServer = async (project) => (await Client.create(project.configPath)).getTargetServer(undefined)
 
 const local = (project, ...files) => files.map(f => join(project.site, f)).sort()
@@ -144,7 +147,9 @@ async function runSyncFlow(server, targetFields) {
   const remoteDir = join(server.root, REMOTE_PATH)
   const settled = () => waitFor(() => server.openConnections() === 0, 'the server to see every connection closed')
 
-  // init: the target isn't configured, so prepare() creates the remote path and an empty list.
+  // init: the target isn't configured, so prepare() writes an empty list into the existing
+  // remote path.
+  makeRemoteDir(server, REMOTE_PATH)
   const target = await targetServer(project)
   assert.equal(await target.verify(), false)
   await settled()
@@ -237,6 +242,36 @@ describe('plain FTP', () => {
     assert.ok(server.logins.every(login => !login.secure && !login.encrypted))
   })
 
+  test('a Connection checks for a remote directory without creating it, and stays in the login directory', async () => {
+    makeRemoteDir(server, 'www/found/sub')
+    const conn = new Connection({ host: '127.0.0.1', port: server.port, user: USER, pass: PASS })
+    try {
+      assert.equal(await conn.remoteDirectoryFound('www/found'), true)
+      assert.equal(await conn.remoteDirectoryFound('www/found/sub/'), true)
+      assert.equal(await conn.remoteDirectoryFound('www/not-there'), false)
+      assert.equal(await conn.remoteDirectoryFound('www/not-there/deeper'), false)
+      assert.equal(await conn.putContent('here', 'www/found/file.txt'), true)
+    } finally {
+      await conn.close()
+    }
+    assert.ok(!existsSync(join(server.root, 'www/not-there')), 'the missing directory was not created')
+    assert.equal(readFileSync(join(server.root, 'www/found/file.txt'), 'utf8'), 'here')
+    await waitFor(() => server.openConnections() === 0, 'the server to see the connection closed')
+  })
+
+  test('the syncodemayo init CLI fails for a missing target path, names it, and creates nothing', async () => {
+    const project = makeProject(server, { path: 'www/typo-path' })
+    const before = listTree(server.root)
+    const { code, killed, output } = await runCli(['init'], project.dir)
+    assert.equal(killed, false, output)
+    assert.notEqual(code, 0, `init should fail:\n${output}`)
+    assert.match(output, /www\/typo-path/)
+    assert.match(output, /create the folder/)
+    assert.ok(!existsSync(join(server.root, 'www/typo-path')), 'the target path was not created')
+    assert.deepEqual(listTree(server.root), before, 'nothing uploaded')
+    await waitFor(() => server.openConnections() === 0, 'the server to see the init connection closed')
+  })
+
   test('a Connection runs operations called concurrently one at a time, relative to the login directory', async () => {
     const conn = new Connection({ host: '127.0.0.1', port: server.port, user: USER, pass: PASS })
     try {
@@ -259,6 +294,7 @@ describe('plain FTP', () => {
 
   test('each TargetServer operation leaves no socket open in this process', async () => {
     const project = makeProject(server, { path: 'www/handles' })
+    makeRemoteDir(server, 'www/handles')
     const baseline = socketHandles()
     const target = await targetServer(project)
     await target.prepare()
@@ -271,6 +307,7 @@ describe('plain FTP', () => {
 
   test('a failing sync still closes its connection', async () => {
     const project = makeProject(server, { path: 'www/failing' })
+    makeRemoteDir(server, 'www/failing')
     const target = await targetServer(project)
     await target.prepare()
     // Make an upload fail partway.
@@ -282,6 +319,7 @@ describe('plain FTP', () => {
 
   test('the syncodemayo CLI exits on its own after init, changes, verify, sync and diff', async () => {
     const project = makeProject(server, { path: 'www/cli' })
+    makeRemoteDir(server, 'www/cli')
     for (const args of [['init'], ['changes'], ['verify'], ['sync', '-f'], ['diff']]) {
       const { code, killed, signal, output } = await runCli(args, project.dir)
       assert.equal(killed, false, `${args.join(' ')} did not exit on its own:\n${output}`)
@@ -338,6 +376,7 @@ describe('explicit FTPS (secure: true)', () => {
 
   test('rejectUnauthorized: false warns through Log.urgent, naming the target, once per connection, even under -q', async () => {
     const project = makeProject(server, { path: 'www/warned', secure: true, rejectUnauthorized: false })
+    makeRemoteDir(server, 'www/warned')
     setLogLevel(LogLevel.Info) // what -q sets
     try {
       const { lines } = await captureLog(async () => {
@@ -359,6 +398,7 @@ describe('explicit FTPS (secure: true)', () => {
 
   test('the CLI under -q still prints the warning', async () => {
     const project = makeProject(server, { path: 'www/warned-cli', secure: true, rejectUnauthorized: false })
+    makeRemoteDir(server, 'www/warned-cli')
     const { code, output } = await runCli(['-q', 'init'], project.dir)
     assert.equal(code, 0, output)
     assert.match(output, /Warning: TLS certificate checks are off for target "ftp"/)

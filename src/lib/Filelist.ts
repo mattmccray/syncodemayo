@@ -22,15 +22,23 @@ export async function writeLocalFile(path: string, content: string): Promise<any
   return fs.writeFileSync(path, content)
 }
 
-export function getRemoteFilelist(target: ITargetConfig, conn: RemoteConnection): Promise<IFilelist> {
+/**
+ * Reads and parses the remote file list at `<target.path>/<target.cache>`. Rejects with an `Error`
+ * that tells the user to run `syncodemayo init` when the list is missing or isn't valid JSON.
+ */
+export async function getRemoteFilelist(target: ITargetConfig, conn: RemoteConnection): Promise<IFilelist> {
   const path = `${target.path}/${target.cache}`
-  return conn.getRemoteFile(path)
-    .then(JSON.parse)
-    .catch((err) => {
-      Log.info("Missing or error parsing remote file list.", err)
-      Log.log("\n   Run sync:init to setup SyncoDeMayo on the server.\n")
-      process.exit(1)
-    })
+  try {
+    return JSON.parse(await conn.getRemoteFile(path)) as IFilelist
+  }
+  catch (err) {
+    Log.debug("Missing or error parsing remote file list.", err)
+    throw new Error(
+      `The remote file list ${path} is missing or unreadable (${(err as Error)?.message ?? err}). ` +
+      `Run "syncodemayo init" to set up SyncoDeMayo on the server.`,
+      { cause: err },
+    )
+  }
 }
 
 /**
@@ -48,6 +56,19 @@ export function toPosixPath(filepath: string, sep: string = path.sep): string {
 export function filelistKey(localPath: string, relativePath: string, sep: string = path.sep): string {
   const prefix = toPosixPath(localPath, sep).replace(/\/+/g, '/').replace(/\/$/, '')
   return `${prefix}/${toPosixPath(relativePath, sep)}`
+}
+
+/**
+ * The remote path for a cache key: `target.path` (without trailing slashes), one `/`, then the
+ * key with its `filelistKey(localPath, …)` prefix removed. Resolves null when the key doesn't
+ * start with that prefix (for example, `local.path` changed since the file list was written).
+ */
+export function remotePathForKey(localPath: string, targetPath: string, key: string, sep: string = path.sep): string | null {
+  const prefix = filelistKey(localPath, '', sep)
+  if (!key.startsWith(prefix)) return null
+  const relative = key.slice(prefix.length)
+  if (relative === '') return null
+  return `${targetPath.replace(/\/+$/, '')}/${relative}`
 }
 
 /**
