@@ -3,7 +3,7 @@ import * as path from 'path'
 import * as Log from './Log.js'
 import { IConfig, ILocalConfig, ITargetConfig, resolveTarget } from './Config.js'
 import { RemoteConnection } from './RemoteConnection.js'
-import { IFilelist, getRemoteFilelist, buildLocalFilelist } from './Filelist.js'
+import { IFilelist, getRemoteFilelist, buildLocalFilelist, remotePathForKey } from './Filelist.js'
 import { ConfirmStreams, confirmUpload } from './Prompt.js'
 
 export interface IChangeset {
@@ -56,12 +56,23 @@ export class Sync {
 
     Log.log("Uploading %s files...", filesToUpload.length)
 
+    // The remote path for a cache key, or null (with a warning) when the key is outside the
+    // current local.path.
+    const remotePathFor = (filePath: string): string | null => {
+      const remotePath = remotePathForKey(this._config.local.path, this._target.path, filePath)
+      if (remotePath === null) {
+        Log.urgent(`   -> Skipping ${filePath}: it isn't under local.path (${this._config.local.path}), so its remote path is unknown.`)
+      }
+      return remotePath
+    }
+
     let sequentialUploader: any = Promise.resolve(true)
 
     filesToUpload.forEach((filePath: string) => {
       sequentialUploader = sequentialUploader.then(async () => {
-        const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
-        const remoteDir = path.dirname(remotePath)
+        const remotePath = remotePathFor(filePath)
+        if (remotePath === null) return true
+        const remoteDir = path.posix.dirname(remotePath)
         const localPath = path.resolve(filePath)
 
         await verifyDirExists(remoteDir)
@@ -73,7 +84,8 @@ export class Sync {
     if (this._config.local.deleteRemoteFiles && changeset.removed.length > 0) {
       changeset.removed.forEach((filePath: string) => {
         sequentialUploader = sequentialUploader.then(async () => {
-          const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
+          const remotePath = remotePathFor(filePath)
+          if (remotePath === null) return true
           const didDelete = await this._conn.deleteRemoteFile(remotePath)
           if (!didDelete) Log.urgent("   -> Error deleting file")
           return true
@@ -82,17 +94,6 @@ export class Sync {
     }
 
     await sequentialUploader
-
-    // await Promise.all(
-    //   filesToUpload.map(async (filePath: string) => {
-    //     const remotePath = `${this._target.path}${filePath.replace(this._config.local.path, '')}`
-    //     const remoteDir = path.dirname(remotePath)
-
-    //     await verifyDirExists(remoteDir)
-    //     await this._conn.putFile(filePath, remotePath)
-    //     return filePath
-    //   })
-    // )
 
     const remoteCachePath = `${this._target.path}/${this._target.cache}`
     await verifyDirExists(path.dirname(remoteCachePath))
@@ -116,14 +117,12 @@ export class Sync {
   }
 
   private async _getFilelists(local: ILocalConfig, target: ITargetConfig, conn: RemoteConnection) {
-    // Load/build Filesets in parralel.
-    const remoteFilesLoader = getRemoteFilelist(target, conn)
-    const localFilesBuilder = buildLocalFilelist(local)
-
-    return {
-      localFiles: await localFilesBuilder,
-      remoteFiles: await remoteFilesLoader
-    }
+    // Load/build Filesets in parallel.
+    const [localFiles, remoteFiles] = await Promise.all([
+      buildLocalFilelist(local),
+      getRemoteFilelist(target, conn),
+    ])
+    return { localFiles, remoteFiles }
   }
 
   private _buildChangeset(localFiles: IFilelist, remoteFiles: IFilelist) {

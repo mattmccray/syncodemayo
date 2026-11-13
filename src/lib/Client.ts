@@ -1,6 +1,6 @@
 import * as Log from './Log.js'
 import { resolve as resolvePath } from 'path'
-import { IConfig, loadConfigFile, ITargetConfig, resolveTarget } from './Config.js'
+import { ConfigNotFoundError, IConfig, loadConfigFile, ITargetConfig, resolveTarget } from './Config.js'
 import { TargetServer } from './TargetServer.js'
 import { DefaultConfig } from './ConfigSchema.js'
 import { writeLocalFile, localFileExists } from './Filelist.js'
@@ -30,8 +30,11 @@ export class Client {
           resolve(this)
         })
         .catch((err: Error) => {
-          if (err.message.indexOf('Schema Error')) this.loadError = err
-          if (err.message.indexOf('JSON')) this.parseError = err
+          // No config file is not an error: hasConfig is false and neither error is set.
+          // Invalid JSON is a parse error; anything else (a schema error, a read failure) is a
+          // load error.
+          if (err instanceof SyntaxError) this.parseError = err
+          else if (!(err instanceof ConfigNotFoundError)) this.loadError = err
           this.hasConfig = false
           resolve(this)
         })

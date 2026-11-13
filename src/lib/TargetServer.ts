@@ -44,7 +44,9 @@ export class TargetServer {
   }
 
   /**
-   * Add a cache file, if there's not one
+   * Add a cache file, if there's not one. `target.path` must already exist: a missing path is
+   * most likely a typo, so this rejects (telling the user to create the folder) and creates
+   * nothing.
    */
   async prepare(force?: boolean): Promise<boolean> {
     const remoteCachePath = `${this._targetConfig.path}/${this._targetConfig.cache}`
@@ -56,9 +58,12 @@ export class TargetServer {
         return false
       }
 
-      const remoteDirExists = await conn.remoteDirectoryExists(this._targetConfig.path)
-      if (!remoteDirExists) {
-        throw new Error("Remote path not found: " + this._targetConfig.path)
+      const { path, host } = this._targetConfig
+      const remoteDirFound = await conn.remoteDirectoryFound(path)
+      if (!remoteDirFound) {
+        throw new Error(
+          `Remote path "${path}" not found on ${host}. ` +
+          `Check the target's "path", or create the folder on the server, then run init again.`)
       }
 
       await conn.putContent("{}", remoteCachePath)

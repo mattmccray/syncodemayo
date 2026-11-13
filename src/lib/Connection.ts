@@ -98,6 +98,22 @@ export class Connection implements RemoteConnection {
     })
   }
 
+  // Changes into the directory and back to the login directory: creates nothing.
+  remoteDirectoryFound(pathname: string): Promise<boolean> {
+    return this._run(async (startDir) => {
+      try {
+        await this._client.cd(pathname)
+        return true
+      }
+      catch {
+        return false
+      }
+      finally {
+        await this._client.cd(startDir)
+      }
+    })
+  }
+
   // As in v1, this creates the directory and any missing parents (mkdir -p), and resolves
   // whether that worked.
   remoteDirectoryExists(pathname: string): Promise<boolean> {

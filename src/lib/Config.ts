@@ -35,18 +35,38 @@ export interface ITargetConfig {
   rejectUnauthorized?: boolean
 }
 
-async function evalConfigFromFile(pathname: string): Promise<IConfig> {
+/**
+ * Thrown by `loadConfigFile` when no config file exists: the preferred path is missing, or (with
+ * no preferred path) none of the default file names exists in the working directory.
+ */
+export class ConfigNotFoundError extends Error {
+  constructor(message = "Local config not found.") {
+    super(message)
+    this.name = 'ConfigNotFoundError'
+  }
+}
+
+/** The config file names `loadConfigFile` tries, in order, when it isn't given a path. */
+export const CONFIG_FILE_NAMES = [
+  'syncodemayo.json',
+  '.syncodemayo.json',
+  'sync-config.json',
+]
+
+// Reads and parses a config file. Resolves undefined (which JSON never parses to) when the file
+// doesn't exist.
+async function evalConfigFromFile(pathname: string): Promise<IConfig | undefined> {
   if (typeof pathname !== 'string')
     throw new Error(`Path must be a string. Got a ${typeof pathname}`)
 
   const fullpath = resolvePath("./" + pathname)
-  if (!localFileExists(fullpath))
-    throw new Error("SKIP")
+  if (!(await localFileExists(fullpath)))
+    return undefined
 
   const source = await readLocalFile(fullpath, false) as string
   const data = JSON.parse(stripJsonComments(source)) as IConfig
 
-  if (typeof data === 'object')
+  if (typeof data === 'object' && data !== null)
     data._path = fullpath
 
   return data
@@ -54,39 +74,21 @@ async function evalConfigFromFile(pathname: string): Promise<IConfig> {
 
 
 /**
- * Sending nulll as the preferred path will result in scan for the config
+ * Loads, validates, and fills in the defaults of a config file. With no preferred path it tries
+ * each of `CONFIG_FILE_NAMES` in the working directory and loads the first one that exists.
+ * Rejects with `ConfigNotFoundError` when there's no config file, with a `SyntaxError` when the
+ * file isn't valid JSON, and with a "Config Schema Error: ..." `Error` when it fails validation.
  */
-export function loadConfigFile(preferredPath?: string): Promise<IConfig> {
-  const loadingPromise = new Promise<IConfig>((resolve, reject) => {
-    const potentialConfigs = (!!preferredPath)
-      ? [preferredPath]
-      : [
-        'syncodemayo.json',
-        '.syncodemayo.json',
-        'sync-config.json',
-      ]
-    const tryLoading = (path: string | undefined) => {
-      if (!!path) {
-        evalConfigFromFile(path)
-          .then(resolve)
-          .catch(err => {
-            if (err.message === "SKIP")
-              tryLoading(potentialConfigs.shift())
-            else
-              reject(err)
-          })
-      }
-      else {
-        reject(new Error("Local config not found."))
-      }
-    }
-    // Kick off config loading...
-    tryLoading(potentialConfigs.shift())
-  })
+export async function loadConfigFile(preferredPath?: string): Promise<IConfig> {
+  const potentialConfigs = (!!preferredPath) ? [preferredPath] : CONFIG_FILE_NAMES
 
-  return loadingPromise
-    .then(validateConfig)
-    .then(massageConfigData)
+  for (const path of potentialConfigs) {
+    const config = await evalConfigFromFile(path)
+    if (config !== undefined)
+      return massageConfigData(await validateConfig(config))
+  }
+
+  throw new ConfigNotFoundError()
 }
 
 async function massageConfigData(config: IConfig): Promise<IConfig> {
