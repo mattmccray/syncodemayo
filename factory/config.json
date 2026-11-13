@@ -1,0 +1,10 @@
+{
+  "schema": "factory/v1",
+  "reviewers": [
+    "code"
+  ],
+  "maxRound": 2,
+  "dashboard": {
+    "settleAfterHours": 24
+  }
+}

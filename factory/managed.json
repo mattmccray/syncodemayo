@@ -1,0 +1,14 @@
+{
+  "schema": "factory/v1",
+  "version": "0.6.1",
+  "files": {
+    ".claude/agents/factory-approver.md": "9d57c9cd83ee00a615a802e90080b3356899dc20fb4bf0200083a36c5c0e743c",
+    ".claude/agents/factory-builder.md": "e1175d65245d069aa29692bc1a50f6bf6d4c48e0b1549d24adbd2c99edd0b341",
+    ".claude/agents/factory-code.md": "c60e8a986f43300cf8fd33975aa636125f5b4b2182e3ae4a9f9db6e3dbd5bb52",
+    ".claude/agents/factory-spec-writer.md": "fab6ccb902069890d9738921ed181d021fcc501a431710ea55ca1b646c91e3ef",
+    ".claude/skills/factory/SKILL.md": "6cd141625f895f35a66e55062a15848f1b5631573a095dfa142f0ee52845af4a",
+    ".claude/skills/factory/explore.md": "6f9a30c3db7c1dc00d6d2eede20a77ce1c06e16ae6202541502ea244868baef0",
+    "factory/CONTRACT.md": "5e8bc35621e13e85eff69b66b1e36ab35f746841eef87c23ca211817d53f2da3",
+    "factory/cli.ts": "55c3c5e027174deb8807be7139c11217a2cf73cc214e85024e9b891fdfb16f90"
+  }
+}
