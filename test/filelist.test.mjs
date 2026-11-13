@@ -250,6 +250,16 @@ symlinkTest('buildLocalFilelist finishes on a dot-named symlink loop and lists i
     assert.ok(!keys.some(key => key.includes('/.loop/a/.loop/') || key.includes('/loop/a/loop/')))
   }))
 
+symlinkTest('buildLocalFilelist skips unresolvable entries: a dangling symlink and a self-referencing symlink loop', () =>
+  withTempSite({ 'public/index.html': 'i', 'public/sub/page.html': 'p' }, async (dir) => {
+    const local = `${dir}/public`
+    symlinkSync('does-not-exist', join(local, '.#x'))
+    symlinkSync('.self', join(local, '.self'))
+    symlinkSync('missing.html', join(local, 'sub/dangling.html'))
+    const filelist = await buildLocalFilelist({ ...localConfig(), path: local, exclude: [] })
+    assert.deepEqual(Object.keys(filelist).sort(), [`${local}/index.html`, `${local}/sub/page.html`])
+  }))
+
 test('buildLocalFilelist of a missing folder is empty', async () => {
   assert.deepEqual(await buildLocalFilelist({ ...localConfig(), path: 'test/fixtures/does-not-exist' }), {})
 })

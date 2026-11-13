@@ -97,7 +97,24 @@ export function matchesGlobDot(filepath: string, pattern: string): boolean {
 // Symlinks follow glob 7's `**/**` rule (the v1 default `files`): a symlinked
 // directory reached through real directories is walked in full, but a
 // symlinked directory inside one is not entered. No path crosses more than one
-// symlink, so a symlink loop ends instead of failing with ELOOP.
+// symlink, so a symlink loop ends instead of failing with ELOOP. Entries that
+// can't be resolved (dangling symlinks, self-referencing symlinks) are skipped.
+// lstat and stat for one entry, or null when it can't be resolved (a dangling
+// symlink, or a symlink loop): such entries are skipped.
+function statEntry(fullpath: string): { isSymlink: boolean, isDirectory: boolean } | null {
+  try {
+    return {
+      isSymlink: fs.lstatSync(fullpath).isSymbolicLink(),
+      isDirectory: fs.statSync(fullpath).isDirectory(),
+    }
+  }
+  catch (err) {
+    const code = (err as NodeJS.ErrnoException).code
+    if (code === 'ENOENT' || code === 'ELOOP') return null
+    throw err
+  }
+}
+
 export function listLocalFiles(root: string): string[] {
   const files = new Set<string>()
   const pending: { dir: string, inSymlink: boolean }[] = [{ dir: '', inSymlink: false }]
@@ -108,8 +125,10 @@ export function listLocalFiles(root: string): string[] {
     for (const entry of entries) {
       const relative = dir ? `${dir}/${toPosixPath(entry)}` : toPosixPath(entry)
       const fullpath = path.join(root, relative)
-      const isSymlink = fs.lstatSync(fullpath).isSymbolicLink()
-      if (!fs.statSync(fullpath).isDirectory()) {
+      const stats = statEntry(fullpath)
+      if (stats == null) continue
+      const { isSymlink, isDirectory } = stats
+      if (!isDirectory) {
         files.add(relative)
       }
       else if (!isSymlink) {
