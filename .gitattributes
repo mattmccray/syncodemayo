@@ -1,0 +1,3 @@
+# Golden fixture bytes must never be rewritten (line endings, etc.): the
+# committed CRC32 values in test/fixtures/site.filelist.json depend on them.
+test/fixtures/** -text

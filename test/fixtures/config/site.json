@@ -1,0 +1,13 @@
+{
+  "local": {
+    "path": "test/fixtures/site",
+    "exclude": ["**/*.md", "**/drafts/**"]
+  },
+  "targets": {
+    "staging": {
+      "host": "staging.example.com",
+      "user": "stage-user",
+      "path": "www/stage"
+    }
+  }
+}

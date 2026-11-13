@@ -7,7 +7,7 @@
     "syncodemayo": "./cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tsc -p ./tsconfig.test.json && node --test \"test/**/*.test.mjs\"",
     "compile": "tsc -p ./tsconfig.json && echo 'Finished compile.'",
     "compile:watch": "tsc --watch -p ./tsconfig.json",
     "version:bump": "npm version patch",
