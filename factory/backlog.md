@@ -1,1 +1,1 @@
-- [ ] SyncoDeMayo 2.0 — one runtime dependency (basic-ftp), node:test suite, FTPS, dotfiles synced, v1 bugs fixed, ready to publish as 2.0.0 — epic: factory/epics/syncodemayo-v2.md
+- [x] SyncoDeMayo 2.0 — one runtime dependency (basic-ftp), node:test suite, FTPS, dotfiles synced, v1 bugs fixed, ready to publish as 2.0.0 — epic: factory/epics/syncodemayo-v2.md → epic syncodemayo-v2
