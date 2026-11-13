@@ -4,7 +4,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
-import { loadConfigFile } from '../lib/Config.js'
+import { loadConfigFile } from '../dist/lib/Config.js'
 
 const COMMENTED = 'test/fixtures/config/commented.json'
 const EXPLICIT = 'test/fixtures/config/explicit.json'

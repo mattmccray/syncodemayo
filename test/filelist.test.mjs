@@ -6,7 +6,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { buildLocalFilelist } from '../lib/Filelist.js'
+import { buildLocalFilelist } from '../dist/lib/Filelist.js'
 
 const SITE = 'test/fixtures/site'
 const golden = JSON.parse(readFileSync('test/fixtures/site.filelist.json', 'utf8'))

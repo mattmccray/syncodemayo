@@ -1,5 +1,5 @@
-import { IConfig } from './Config'
-import * as joi from 'joi'
+import { IConfig } from './Config.js'
+import joi from 'joi'
 
 export const localSchema = joi.object({
   path: joi.string().required(),

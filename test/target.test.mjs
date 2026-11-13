@@ -1,7 +1,7 @@
 // Characterization tests for v1 resolveTarget and resolvePassword.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { loadConfigFile, resolveTarget, resolvePassword } from '../lib/Config.js'
+import { loadConfigFile, resolveTarget, resolvePassword } from '../dist/lib/Config.js'
 
 // explicit.json: defaultTarget "production"; targets staging, production, and archive (disabled).
 const loadMassaged = () => loadConfigFile('test/fixtures/config/explicit.json')

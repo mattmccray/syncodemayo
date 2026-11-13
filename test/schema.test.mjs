@@ -1,7 +1,7 @@
 // Characterization tests for v1 validateConfig (the joi schema).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { validateConfig } from '../lib/ConfigSchema.js'
+import { validateConfig } from '../dist/lib/ConfigSchema.js'
 
 const minimal = () => ({
   local: { path: 'public' },

@@ -1,16 +1,16 @@
-import * as Log from './Log'
+import * as Log from './Log.js'
 import { resolve as resolvePath } from 'path'
-import { IConfig, loadConfigFile, ITargetConfig, resolveTarget } from './Config'
-import { TargetServer } from './TargetServer'
-import { DefaultConfig } from './ConfigSchema'
-import { writeLocalFile, localFileExists } from './Filelist'
+import { IConfig, loadConfigFile, ITargetConfig, resolveTarget } from './Config.js'
+import { TargetServer } from './TargetServer.js'
+import { DefaultConfig } from './ConfigSchema.js'
+import { writeLocalFile, localFileExists } from './Filelist.js'
 
 export class Client {
   private _path: string | undefined
   hasConfig: boolean | null = null
-  config: IConfig
-  loadError: Error
-  parseError: Error
+  config!: IConfig
+  loadError!: Error
+  parseError!: Error
   whenReady: Promise<Client>
 
   DEFAULT_CONFIG = "syncodemayo.json"

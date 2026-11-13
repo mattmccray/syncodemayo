@@ -1,10 +1,10 @@
 
 import * as path from 'path'
-import * as yesno from 'yesno'
-import * as Log from './Log'
-import { IConfig, ILocalConfig, ITargetConfig, resolveTarget } from './Config'
-import { Connection } from './Connection'
-import { IFilelist, getRemoteFilelist, buildLocalFilelist } from './Filelist'
+import yesno from 'yesno'
+import * as Log from './Log.js'
+import { IConfig, ILocalConfig, ITargetConfig, resolveTarget } from './Config.js'
+import { Connection } from './Connection.js'
+import { IFilelist, getRemoteFilelist, buildLocalFilelist } from './Filelist.js'
 
 export interface IChangeset {
   added: string[]

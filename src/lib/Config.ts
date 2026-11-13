@@ -1,7 +1,7 @@
 import { resolve as resolvePath } from 'path'
-import { validateConfig } from './ConfigSchema'
-import { localFileExists, readLocalFile } from './Filelist'
-import * as stripJsonComments from 'strip-json-comments'
+import { validateConfig } from './ConfigSchema.js'
+import { localFileExists, readLocalFile } from './Filelist.js'
+import stripJsonComments from 'strip-json-comments'
 
 
 export interface IConfig {
@@ -53,7 +53,7 @@ async function evalConfigFromFile(pathname: string): Promise<IConfig> {
  * Sending nulll as the preferred path will result in scan for the config
  */
 export function loadConfigFile(preferredPath?: string): Promise<IConfig> {
-  const loadingPromise = new Promise((resolve, reject) => {
+  const loadingPromise = new Promise<IConfig>((resolve, reject) => {
     const potentialConfigs = (!!preferredPath)
       ? [preferredPath]
       : [

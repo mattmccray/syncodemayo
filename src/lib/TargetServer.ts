@@ -1,7 +1,7 @@
-import * as Log from './Log'
-import { IConfig, ITargetConfig, resolveTarget } from './Config'
-import { Connection } from './Connection'
-import { Sync, IChangeset } from './Sync'
+import * as Log from './Log.js'
+import { IConfig, ITargetConfig, resolveTarget } from './Config.js'
+import { Connection } from './Connection.js'
+import { Sync, IChangeset } from './Sync.js'
 
 export class TargetServer {
   private _config: IConfig

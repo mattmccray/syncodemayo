@@ -1,5 +1,5 @@
-import * as Log from './Log'
-import { Client } from './Client'
+import * as Log from './Log.js'
+import { Client } from './Client.js'
 
 export interface CLIFlags {
   logLevel: Log.LogLevel

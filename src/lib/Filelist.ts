@@ -1,10 +1,10 @@
-import * as glob from 'glob'
-import * as minimatch from 'minimatch'
-import * as crc from 'crc'
+import glob from 'glob'
+import minimatch from 'minimatch'
+import crc from 'crc'
 import * as fs from 'fs'
-import * as Log from './Log'
-import { ILocalConfig, ITargetConfig } from './Config'
-import { Connection } from './Connection'
+import * as Log from './Log.js'
+import { ILocalConfig, ITargetConfig } from './Config.js'
+import { Connection } from './Connection.js'
 
 export interface IFilelist {
   [filename: string]: number
