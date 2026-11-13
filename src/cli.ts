@@ -1,110 +1,72 @@
 #!/usr/bin/env node
 
-import dotenv from 'dotenv'
-dotenv.config()
+// Must be the first import: loads .env before any other module reads process.env.
+import './env.js'
 
+import { readFileSync } from 'node:fs'
 import * as CLI from './lib/Cli.js'
 import * as Log from './lib/Log.js'
-import program from 'commander'
+import { CliArgs, CliArgsError, HELP, parseCliArgs } from './lib/Args.js'
 
-const defaultTarget = undefined
-let syncTarget: string | undefined = undefined
-let command = 'help'
+let args: CliArgs
+try {
+  args = parseCliArgs(process.argv.slice(2))
+}
+catch (err) {
+  if (!(err instanceof CliArgsError)) throw err
+  process.stderr.write(`error: ${err.message}\n\nRun 'syncodemayo --help' for usage.\n`)
+  process.exit(1)
+}
 
-program
-  .version('1.0.0')
-  .option('-c, --config [file]', 'Specify local config [file]')
-  .option('-v, --verbose', 'Verbose logging', false)
-  .option('-q, --quiet', 'Minimal logging', false)
+CLI.setFlags({ logLevel: args.logLevel })
 
-program
-  .command('init [target]')
-  .description("Configure local folder and/or server to sync")
-  // .option('-f, --force', 'Force upload of initial cache file')
-  .action((target: string | null) => {
-    syncTarget = target || defaultTarget
-    command = 'init'
-  })
+const { config, target } = args
 
-program
-  .command('changes [target]')
-  .alias('diff')
-  .description("Perform sync dry run and display the changes")
-  .action((target: string | null) => {
-    syncTarget = target || defaultTarget
-    command = 'changes'
-  })
-
-program
-  .command('verify [target]')
-  .description("Verify server is configured")
-  .action((target: string | null) => {
-    syncTarget = target || defaultTarget
-    command = 'check'
-  })
-
-program
-  .command('sync [target]')
-  .description("Perform sync to server")
-  .option('-f, --force', "Don't prompt before uploading.", false)
-  .action((target: string | null, options: any) => {
-    syncTarget = target || defaultTarget
-    command = options.force ? 'syncf' : 'sync'
-  })
-
-program
-  .command('ls')
-  .description("List defined targets in config")
-  .action(() => {
-    command = "ls"
-  })
-
-program.parse(process.argv);
-
-CLI.setFlags({
-  logLevel: program.verbose
-    ? Log.LogLevel.Debug
-    : program.quiet
-      ? Log.LogLevel.Info
-      : Log.LogLevel.Default
-})
-
-
-switch (command) {
+switch (args.command) {
 
   case "changes":
-    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
-    CLI.changes(program.config, syncTarget).then(showDone).catch(showError)
+    Log.debug(`Performing '${args.command}' on target: ${target || '(default)'}...\n`)
+    CLI.changes(config, target).then(showDone).catch(showError)
     break
 
   case "check":
-    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
-    CLI.check(program.config, syncTarget).then(showDone).catch(showError)
+    Log.debug(`Performing '${args.command}' on target: ${target || '(default)'}...\n`)
+    CLI.check(config, target).then(showDone).catch(showError)
     break
 
   case "init":
-    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}...\n`)
-    CLI.init(program.config, syncTarget).then(showDone).catch(showError)
+    Log.debug(`Performing '${args.command}' on target: ${target || '(default)'}...\n`)
+    CLI.init(config, target).then(showDone).catch(showError)
     break
 
   case "ls":
-    Log.debug(`Performing '${command}'...\n`)
-    CLI.ls(program.config).then(showDone).catch(showError)
-    break;
+    Log.debug(`Performing '${args.command}'...\n`)
+    CLI.ls(config).then(showDone).catch(showError)
+    break
 
   case "sync":
-    Log.debug(`Performing '${command}' on target: ${syncTarget || '(default)'}\n...`)
-    CLI.sync(program.config, syncTarget, false).then(showDone).catch(showError)
+    if (args.force) {
+      Log.debug(`Performing (forced) 'sync' on target: ${target || '(default)'}\n...`)
+    }
+    else {
+      Log.debug(`Performing '${args.command}' on target: ${target || '(default)'}\n...`)
+    }
+    CLI.sync(config, target, args.force).then(showDone).catch(showError)
     break
-  case "syncf":
-    Log.debug(`Performing (forced) 'sync' on target: ${syncTarget || '(default)'}\n...`)
-    CLI.sync(program.config, syncTarget, true).then(showDone).catch(showError)
+
+  case "version":
+    process.stdout.write(readPackageVersion() + "\n")
     break
 
   case "help":
   default:
-    syncTarget = "app"
-    program.help()
+    process.stdout.write(HELP)
+}
+
+// The version of this package, read from its package.json (one level above dist/).
+function readPackageVersion(): string {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  return String(pkg.version)
 }
 
 function showDone() {
@@ -114,8 +76,5 @@ function showDone() {
 
 function showError(err: any) {
   console.error("\n(!)", err.message, "\n\n", err)
-  // if (program.verbose) {
-  //   console.error(err)
-  // }
   process.exit(1)
 }

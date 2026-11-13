@@ -3,7 +3,7 @@ import * as path from 'path'
 import { crc32 } from 'zlib'
 import * as Log from './Log.js'
 import { ILocalConfig, ITargetConfig } from './Config.js'
-import { Connection } from './Connection.js'
+import { RemoteConnection } from './RemoteConnection.js'
 
 export interface IFilelist {
   [filename: string]: number
@@ -22,7 +22,7 @@ export async function writeLocalFile(path: string, content: string): Promise<any
   return fs.writeFileSync(path, content)
 }
 
-export function getRemoteFilelist(target: ITargetConfig, conn: Connection): Promise<IFilelist> {
+export function getRemoteFilelist(target: ITargetConfig, conn: RemoteConnection): Promise<IFilelist> {
   const path = `${target.path}/${target.cache}`
   return conn.getRemoteFile(path)
     .then(JSON.parse)

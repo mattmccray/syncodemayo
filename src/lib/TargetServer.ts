@@ -1,11 +1,13 @@
 import * as Log from './Log.js'
 import { IConfig, ITargetConfig, resolveTarget } from './Config.js'
 import { Connection } from './Connection.js'
+import { ConnectionFactory, RemoteConnection } from './RemoteConnection.js'
 import { Sync, IChangeset } from './Sync.js'
 
 export class TargetServer {
   private _config: IConfig
   private _targetConfig: ITargetConfig
+  private _connect: ConnectionFactory
 
   get config() {
     return this._targetConfig
@@ -15,9 +17,30 @@ export class TargetServer {
     return this.config._name
   }
 
-  constructor(config: IConfig, target: string | ITargetConfig | undefined) {
+  /**
+   * `connect` opens the connection for each operation. It defaults to FTP/FTPS (`Connection`);
+   * tests pass a fake.
+   */
+  constructor(config: IConfig, target: string | ITargetConfig | undefined, connect: ConnectionFactory = Connection.create) {
     this._config = config
     this._targetConfig = resolveTarget(config, target)
+    this._connect = connect
+  }
+
+  // Opens a connection, runs `task` with it, and closes it, whether `task` resolves or rejects.
+  private async _withConnection<T>(task: (conn: RemoteConnection) => Promise<T>): Promise<T> {
+    const conn = this._connect(this._targetConfig)
+    try {
+      return await task(conn)
+    }
+    finally {
+      try {
+        await conn.close()
+      }
+      catch (err) {
+        Log.debug("Error closing the connection:", err)
+      }
+    }
   }
 
   /**
@@ -25,22 +48,23 @@ export class TargetServer {
    */
   async prepare(force?: boolean): Promise<boolean> {
     const remoteCachePath = `${this._targetConfig.path}/${this._targetConfig.cache}`
-    const conn = Connection.create(this._targetConfig)
-    const remoteIsConfigured = await conn.remoteFileExists(remoteCachePath)
+    return this._withConnection(async (conn) => {
+      const remoteIsConfigured = await conn.remoteFileExists(remoteCachePath)
 
-    if (remoteIsConfigured && force !== true) {
-      Log.info(`${this._targetConfig.host} already is initialized.`)
-      return false
-    }
+      if (remoteIsConfigured && force !== true) {
+        Log.info(`${this._targetConfig.host} already is initialized.`)
+        return false
+      }
 
-    const remoteDirExists = await conn.remoteDirectoryExists(this._targetConfig.path)
-    if (!remoteDirExists) {
-      throw new Error("Remote path not found: " + this._targetConfig.path)
-    }
+      const remoteDirExists = await conn.remoteDirectoryExists(this._targetConfig.path)
+      if (!remoteDirExists) {
+        throw new Error("Remote path not found: " + this._targetConfig.path)
+      }
 
-    await conn.putContent("{}", remoteCachePath)
+      await conn.putContent("{}", remoteCachePath)
 
-    return true
+      return true
+    })
   }
 
   /**
@@ -48,25 +72,18 @@ export class TargetServer {
    */
   async verify(): Promise<boolean> {
     const remoteCachePath = `${this._targetConfig.path}/${this._targetConfig.cache}`
-    const conn = Connection.create(this._targetConfig)
-    const remoteIsConfigured = await conn.remoteFileExists(remoteCachePath)
-
-    if (remoteIsConfigured) {
-      return true
-    }
-
-    return false
+    return this._withConnection(conn => conn.remoteFileExists(remoteCachePath))
   }
 
   /**
    * Sync local files to target server
    */
   async sync(isDryRun: boolean, forceConfirmation = false): Promise<IChangeset | null> {
-    const sync = Sync.create(Connection.create(this._targetConfig), this._config, this._targetConfig)
-    return sync.run(isDryRun, forceConfirmation)
+    return this._withConnection(conn =>
+      Sync.create(conn, this._config, this._targetConfig).run(isDryRun, forceConfirmation))
   }
 
-  static create(config: IConfig, targetConfig: string | ITargetConfig | undefined): TargetServer {
-    return new TargetServer(config, targetConfig)
+  static create(config: IConfig, targetConfig: string | ITargetConfig | undefined, connect?: ConnectionFactory): TargetServer {
+    return new TargetServer(config, targetConfig, connect)
   }
 }

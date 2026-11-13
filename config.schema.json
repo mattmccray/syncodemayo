@@ -70,8 +70,22 @@
         },
         "port": {
           "type": "number",
-          "description": "(Default = 21)",
+          "description": "(Default = 21, or 990 when secure is \"implicit\")",
           "default": 21
+        },
+        "secure": {
+          "enum": [
+            false,
+            true,
+            "implicit"
+          ],
+          "description": "FTPS: false = plain FTP, true = explicit FTPS (AUTH TLS, usually port 21), \"implicit\" = implicit FTPS (port 990 by default). (Default = false)",
+          "default": false
+        },
+        "rejectUnauthorized": {
+          "type": "boolean",
+          "description": "Check the server's TLS certificate. false accepts self-signed or mismatched certificates, and prints a warning every time such a connection is made. (Default = true)",
+          "default": true
         },
         "cache": {
           "type": "string",
