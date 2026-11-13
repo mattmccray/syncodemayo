@@ -7,6 +7,11 @@ It's pretty simple. SyncoDeMayo caches a list of known files, and their CRCs, on
 
 ---
 
+Requirements: Node.js 22.17 or later.
+
+Upgrading from 1.x? Version 2.0 changes some behavior. Read the migration notes in
+[CHANGELOG.md](CHANGELOG.md) before your first 2.0 sync.
+
 Install globally:
 ```
 $ npm install -g syncodemayo
@@ -21,7 +26,7 @@ Suggested usage as NPM script:
 ```js
 {
   // ... OTHER NPM FIELDS ...
-  "script": {
+  "scripts": {
     "sync": "syncodemayo sync staging",
     "sync:production": "syncodemayo sync production"
   }
@@ -31,25 +36,26 @@ Suggested usage as NPM script:
 ---
 
 ```
-$ syncodemayo
+$ syncodemayo --help
+Usage: syncodemayo [options] [command]
 
-  Usage: syncodemayo [options] [command]
+Options:
+  -c, --config <file>  Specify local config <file>
+  -v, --verbose        Verbose logging
+  -q, --quiet          Minimal logging
+  -V, --version        Output the version number
+  -h, --help           Output usage information
 
+Commands:
+  init [target]          Configure local folder and/or server to sync
+  changes|diff [target]  Perform sync dry run and display the changes
+  verify [target]        Verify server is configured
+  sync [options] [target]
+                         Perform sync to server
+    -f, --force          Don't prompt before uploading.
+  ls                     List defined targets in config
 
-  Options:
-
-    -V, --version        output the version number
-    -c, --config [file]  Specify local config [file]
-    -h, --help           output usage information
-
-
-  Commands:
-
-    init [target]            Configure local folder and/or server to sync
-    changes|diff [target]    Perform sync dry run and display the changes
-    verify [target]          Verify server is correctly configured
-    sync [options] [target]  Perform sync to server
-    ls                       List defined targets in config
+With no command, shows this help.
 ```
 
 
@@ -59,8 +65,8 @@ Example `syncodemayo.json` config:
 {
   "local": {
     "path": "public", // Required, local path to sync
-    "files": "**/**", // Optional, default='**/***', file glob pattern
-    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*"], // Optional, default=[], glob pattern to ignore
+    "files": "**/**", // Optional, default='**/**', file glob pattern
+    "exclude": ["**/*.map", "**/.DS_Store", "**/.git*", "**/.env*"], // Optional, default=[] (init writes this list), glob patterns to ignore
     "defaultTarget": "staging", // Optional, default='staging', target to use if not specified on cmd line
     "deleteRemoteFiles": true // Optional, default=false - for now...
   },
@@ -94,7 +100,23 @@ Example `syncodemayo.json` config:
 }
 ```
 
+### Dotfiles
+
+Dotfiles and dot-directories sync like any other file: `.htaccess`, for example, is uploaded.
+(1.x skipped them.) Exclude anything that must not reach the server, such as `**/.env*` for
+environment files and `**/.git/**` for a git directory. Note that `**/.git*` excludes
+`.gitignore` but not the files inside a `.git/` directory.
+
+On macOS and Windows, `files` and `exclude` patterns match case-insensitively.
+
+### Passwords and `.env`
+
 You can put the FTP password in the config, but if you're adding it to source control I wouldn't. Instead, add the password to an `.env` file that you set to ignored in your SCM.
+
+SyncoDeMayo reads `.env` from the current working directory (where you run `syncodemayo`).
+Variables already set in the environment win over the ones in `.env`. When a target has no
+`pass`, its password is looked up as `<TARGET NAME UPPERCASED>_PWD`: `STAGING_PWD` for the
+`staging` target.
 
 Example `.env` for above config:
 
@@ -103,7 +125,9 @@ STAGING_PWD=ftpPasswordHere
 PRODUCTION_PWD="Other password here"
 ```
 
-SyncoDeMayo will automatically look in your `.env` for passwords if they aren't in your config.
+**Warning:** a `.env` inside `local.path` is a dotfile like any other, so it would be uploaded
+unless excluded. Configs created by `init` exclude `**/.env*`; if your config predates 2.0, add
+`"**/.env*"` to its `exclude` list.
 
 ### FTPS (FTP over TLS)
 
@@ -136,3 +160,8 @@ with `-q`).
   }
 }
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release, including the migration
+notes for upgrading from 1.x.

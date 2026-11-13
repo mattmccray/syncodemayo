@@ -171,20 +171,68 @@ test('ajv and its draft-04 helper are devDependencies only', () => {
   }
 })
 
-test('npm pack ships dist/ and no sources, tests, factory, or tsconfig', () => {
+test('package.json is version 2.0.0 and its scripts never bump the version', () => {
+  assert.equal(pkg.version, '2.0.0')
+  assert.ok(!('version:bump' in pkg.scripts), 'version:bump script should be removed')
+  for (const [name, script] of Object.entries(pkg.scripts)) {
+    assert.ok(!/npm\s+version/.test(script), `script ${name} runs npm version: ${script}`)
+  }
+})
+
+test('prepublishOnly compiles and runs the test suite', () => {
+  // `npm test` compiles first, so it covers both.
+  assert.equal(pkg.scripts.prepublishOnly, 'npm test')
+  assert.match(pkg.scripts.test, /^npm run compile && node --test /)
+})
+
+test('package.json has the smoke:pack script, and files ships dist and CHANGELOG.md', () => {
+  assert.equal(pkg.scripts['smoke:pack'], 'node scripts/smoke-pack.mjs')
+  assert.deepEqual(pkg.files, ['dist', 'CHANGELOG.md'])
+})
+
+test('npm pack ships dist/, the docs, and no sources, tests, factory, scripts, or tsconfig', () => {
   const [{ files }] = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
     cwd: REPO_ROOT,
     encoding: 'utf8',
   }))
   const paths = files.map(f => f.path)
-  for (const f of ['dist/cli.js', 'dist/index.js', 'dist/index.d.ts']) {
+  for (const f of ['package.json', 'README.md', 'LICENSE', 'CHANGELOG.md', 'dist/cli.js', 'dist/index.js', 'dist/index.d.ts']) {
     assert.ok(paths.includes(f), `missing from package: ${f}`)
   }
+  const TOP_LEVEL = ['package.json', 'README.md', 'LICENSE', 'CHANGELOG.md']
   for (const p of paths) {
+    assert.ok(TOP_LEVEL.includes(p) || p.startsWith('dist/'), `unexpected path in package: ${p}`)
     assert.ok(!(p.endsWith('.ts') && !p.endsWith('.d.ts')), `.ts source in package: ${p}`)
-    assert.ok(!/^(test|factory|\.vscode)\//.test(p), `excluded path in package: ${p}`)
+    assert.ok(!/^(test|factory|\.vscode|scripts)\//.test(p), `excluded path in package: ${p}`)
     assert.ok(!/(^|\/)tsconfig[^/]*\.json$/.test(p), `tsconfig in package: ${p}`)
+    assert.ok(!/(^|\/)\.env/.test(p), `.env in package: ${p}`)
+    assert.ok(!p.endsWith('.tgz'), `tarball in package: ${p}`)
   }
+})
+
+test('README.md has the current HELP text verbatim, the Node.js minimum, and the 2.0 notes', async () => {
+  const { HELP } = await import('../dist/lib/Args.js')
+  const readme = readFileSync(join(REPO_ROOT, 'README.md'), 'utf8')
+  assert.ok(readme.includes(HELP), 'README does not contain the HELP text verbatim')
+  assert.ok(readme.includes('22.17'), 'README does not state the Node.js 22.17 minimum')
+  assert.ok(readme.includes('"exclude": ["**/*.map", "**/.DS_Store", "**/.git*", "**/.env*"]'), 'README config example does not show the default exclude')
+  assert.ok(readme.includes('.htaccess'), 'README dotfiles section does not name .htaccess')
+  assert.ok(readme.includes('**/.git/**'), 'README does not mention the **/.git/** exclude')
+  assert.ok(readme.includes('_PWD'), 'README .env section does not describe the <TARGET>_PWD lookup')
+  assert.ok(readme.includes('CHANGELOG.md'), 'README does not link to CHANGELOG.md')
+  assert.ok(readme.includes('"scripts": {'), 'README npm-script example should use "scripts"')
+  assert.ok(!readme.includes('"script": {'), 'README npm-script example still uses "script"')
+})
+
+test('CHANGELOG.md has a 2.0.0 entry with migration notes', () => {
+  const changelog = readFileSync(join(REPO_ROOT, 'CHANGELOG.md'), 'utf8')
+  assert.match(changelog, /^## 2\.0\.0\b/m)
+  for (const heading of ['Migration from 1.x', 'Added', 'Unchanged']) {
+    assert.match(changelog, new RegExp(`^#+ ${heading.replace('.', '\\.')}`, 'm'), `missing section: ${heading}`)
+  }
+  assert.ok(changelog.includes('syncodemayo diff'))
+  assert.ok(changelog.includes('deleteRemoteFiles'))
+  assert.ok(changelog.includes('.synco-filelist'))
 })
 
 test('dist/cli.js starts with a portable node shebang', () => {
