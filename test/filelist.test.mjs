@@ -5,7 +5,7 @@
 // cwd-relative paths prefixed with local.path.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -200,6 +200,55 @@ test('buildLocalFilelist lists files inside nested dot-directories and applies d
     ])
   })
 })
+
+// public/uploads -> ../shared (a symlinked directory with nested files and its
+// own symlink), public/a/loop -> .. (a loop), and public/filelink -> a file.
+const withSymlinkedSite = (extra, fn) => withTempSite({
+  'public/index.html': 'i',
+  'public/a/z.txt': 'z',
+  'shared/top.txt': 't',
+  'shared/img/p.png': 'p',
+  'shared/img/deeper/q.txt': 'q',
+  'other/x/y.txt': 'y',
+}, async (dir) => {
+  symlinkSync('../shared', join(dir, 'public/uploads'))
+  symlinkSync('../other', join(dir, 'shared/link2'))
+  symlinkSync('..', join(dir, 'public/a/loop'))
+  symlinkSync('../other/x/y.txt', join(dir, 'public/filelink'))
+  extra(dir)
+  return fn(dir)
+})
+
+const symlinkTest = process.platform === 'win32' ? test.skip : test
+
+symlinkTest('buildLocalFilelist follows symlinks the way v1 (glob 7, **/**) did', () =>
+  withSymlinkedSite(() => {}, async (dir) => {
+    const local = `${dir}/public`
+    const filelist = await buildLocalFilelist({ ...localConfig(), path: local, exclude: [] })
+    // The exact file keys glob@7.1.2 sync('<path>/**/**') gave for this tree.
+    assert.deepEqual(Object.keys(filelist).sort(), [
+      'a/loop/a/z.txt',
+      'a/loop/filelink',
+      'a/loop/index.html',
+      'a/z.txt',
+      'filelink',
+      'index.html',
+      'uploads/img/deeper/q.txt',
+      'uploads/img/p.png',
+      'uploads/top.txt',
+    ].map(relative => `${local}/${relative}`))
+  }))
+
+symlinkTest('buildLocalFilelist finishes on a dot-named symlink loop and lists its files once through it', () =>
+  withSymlinkedSite((dir) => symlinkSync('..', join(dir, 'public/a/.loop')), async (dir) => {
+    const local = `${dir}/public`
+    const filelist = await buildLocalFilelist({ ...localConfig(), path: local, exclude: [] })
+    const keys = Object.keys(filelist)
+    for (const relative of ['a/.loop/index.html', 'a/.loop/a/z.txt', 'uploads/img/deeper/q.txt']) {
+      assert.ok(keys.includes(`${local}/${relative}`), relative)
+    }
+    assert.ok(!keys.some(key => key.includes('/.loop/a/.loop/') || key.includes('/loop/a/loop/')))
+  }))
 
 test('buildLocalFilelist of a missing folder is empty', async () => {
   assert.deepEqual(await buildLocalFilelist({ ...localConfig(), path: 'test/fixtures/does-not-exist' }), {})

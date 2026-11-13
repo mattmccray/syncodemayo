@@ -89,40 +89,34 @@ export function matchesGlobDot(filepath: string, pattern: string): boolean {
 // Every file (no directories) under `root`, dotfiles and files inside
 // dot-directories included, as sorted POSIX paths relative to `root`.
 //
-// `fs.globSync('**/*')` never lists a dot entry or enters a dot-directory, and
-// on Node 22.17 a pattern like `**/.*` finds no dot entries at all (only `.*`,
-// globbed from inside the directory, does). So this globs `**/*` from the root
-// and from each dot-directory, and `.*` from every directory found.
+// Each directory is globbed with `*` and `.*` from inside it. `fs.globSync`'s
+// `**` can't do the walk: it never lists a dot entry or enters a
+// dot-directory, on Node 22.17 `**/.*` finds no dot entries at all, and it
+// follows a symlinked directory only one level deep.
+//
+// Symlinks follow glob 7's `**/**` rule (the v1 default `files`): a symlinked
+// directory reached through real directories is walked in full, but a
+// symlinked directory inside one is not entered. No path crosses more than one
+// symlink, so a symlink loop ends instead of failing with ELOOP.
 export function listLocalFiles(root: string): string[] {
   const files = new Set<string>()
-  const seenDirs = new Set<string>()
-  const trees: string[] = ['']  // globbed with `**/*`: the root and each dot-directory
-  const dirs: string[] = []     // globbed with `.*`: every directory found
+  const pending: { dir: string, inSymlink: boolean }[] = [{ dir: '', inSymlink: false }]
 
-  const childOf = (dir: string, entry: string) =>
-    dir ? `${dir}/${toPosixPath(entry)}` : toPosixPath(entry)
-  const isDirectory = (relative: string) =>
-    fs.statSync(path.join(root, relative)).isDirectory()
-  const addDir = (relative: string, queue: string[]) => {
-    if (seenDirs.has(relative)) return
-    seenDirs.add(relative)
-    queue.push(relative)
-  }
-
-  while (trees.length > 0) {
-    const tree = trees.pop()!
-    dirs.push(tree)
-    for (const entry of fs.globSync('**/*', { cwd: path.join(root, tree) })) {
-      const relative = childOf(tree, entry)
-      if (isDirectory(relative)) addDir(relative, dirs)
-      else files.add(relative)
-    }
-    while (dirs.length > 0) {
-      const dir = dirs.pop()!
-      for (const entry of fs.globSync('.*', { cwd: path.join(root, dir) })) {
-        const relative = childOf(dir, entry)
-        if (isDirectory(relative)) addDir(relative, trees)
-        else files.add(relative)
+  while (pending.length > 0) {
+    const { dir, inSymlink } = pending.pop()!
+    const entries = new Set(fs.globSync(['*', '.*'], { cwd: path.join(root, dir) }))
+    for (const entry of entries) {
+      const relative = dir ? `${dir}/${toPosixPath(entry)}` : toPosixPath(entry)
+      const fullpath = path.join(root, relative)
+      const isSymlink = fs.lstatSync(fullpath).isSymbolicLink()
+      if (!fs.statSync(fullpath).isDirectory()) {
+        files.add(relative)
+      }
+      else if (!isSymlink) {
+        pending.push({ dir: relative, inSymlink })
+      }
+      else if (!inSymlink) {
+        pending.push({ dir: relative, inSymlink: true })
       }
     }
   }
