@@ -3,8 +3,11 @@
 // Run from the repo root: v1 resolves config paths against process.cwd().
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { resolve } from 'node:path'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { loadConfigFile } from '../dist/lib/Config.js'
+import { Client } from '../dist/lib/Client.js'
 
 const COMMENTED = 'test/fixtures/config/commented.json'
 const EXPLICIT = 'test/fixtures/config/explicit.json'
@@ -84,4 +87,21 @@ test('deleteRemoteFiles is false unless it is literally true (the string "true" 
 
 test('loadConfigFile rejects when the preferred path does not exist', async () => {
   await assert.rejects(loadConfigFile('test/fixtures/config/does-not-exist.json'))
+})
+
+// `syncodemayo init` writes a new config through Client.createConfig. (The CLI
+// path itself is blocked by the v1 Client error-classification bug in
+// known-bugs.test.mjs, so this calls the writer init uses.)
+test('init writes a new config whose local.exclude adds **/.env* to the v1 defaults', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'syncodemayo-init-'))
+  try {
+    const configPath = join(dir, 'syncodemayo.json')
+    const client = new Client(configPath)
+    await client.whenReady
+    await client.createConfig(configPath)
+    const written = JSON.parse(readFileSync(configPath, 'utf8'))
+    assert.deepEqual(written.local.exclude, ['**/*.map', '**/.DS_Store', '**/.git*', '**/.env*'])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })

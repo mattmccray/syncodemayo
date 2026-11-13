@@ -37,7 +37,7 @@ export const DefaultConfig: any = {
   local: {
     path: "public",
     files: "**/**",
-    exclude: ["**/*.map", "**/.DS_Store", "**/.git*"],
+    exclude: ["**/*.map", "**/.DS_Store", "**/.git*", "**/.env*"],
     defaultTarget: "staging"
   },
   targets: {

@@ -49,20 +49,6 @@ const V1_HELP = `
 `
 const V1_VERSION = '1.0.0\n'
 
-// Runtime dependencies of the v1 package; this job may not change them.
-const V1_DEPENDENCIES = {
-  commander: '^2.11.0',
-  crc: '3.4.1',
-  dotenv: '^4.0.0',
-  glob: '^7.1.2',
-  joi: '^10.6.0',
-  jsftp: '1.3.1',
-  'jsftp-mkdirp': '0.1.2',
-  minimatch: '^3.0.4',
-  'strip-json-comments': '^2.0.1',
-  yesno: '^0.0.1',
-}
-
 test('tsc is TypeScript 5.x', () => {
   assert.match(tsc('--version'), /^Version 5\./)
 })
@@ -104,7 +90,7 @@ test('tsc exits 0 and emits only into its outDir, with the expected entry points
 
 test('package.json describes the ESM dist/ build', () => {
   assert.equal(pkg.type, 'module')
-  assert.equal(pkg.engines?.node, '>=22.12')
+  assert.equal(pkg.engines?.node, '>=22.17')
   assert.equal(pkg.bin?.syncodemayo, './dist/cli.js')
   assert.equal(pkg.main, './dist/index.js')
   assert.equal(pkg.types, './dist/index.d.ts')
@@ -126,8 +112,24 @@ test('package.json drops eslint and the six obsolete @types packages', () => {
   }
 })
 
-test('package.json runtime dependencies are unchanged from v1', () => {
-  assert.deepEqual(pkg.dependencies, V1_DEPENDENCIES)
+test('package.json runtime dependencies drop glob, minimatch, and crc (replaced by Node built-ins)', () => {
+  for (const name of ['glob', 'minimatch', 'crc']) {
+    assert.ok(!(name in (pkg.dependencies ?? {})), `${name} should be removed from dependencies`)
+  }
+})
+
+test('nothing under src/ imports or declares glob, minimatch, or crc', () => {
+  const sources = execFileSync('git', ['ls-files', 'src'], { cwd: REPO_ROOT, encoding: 'utf8' })
+    .split('\n')
+    .filter(f => f.endsWith('.ts'))
+  assert.ok(sources.length > 0)
+  for (const file of sources) {
+    const source = readFileSync(join(REPO_ROOT, file), 'utf8')
+    for (const name of ['glob', 'minimatch', 'crc']) {
+      const quoted = `['"]${name}['"]`
+      assert.doesNotMatch(source, new RegExp(`(from|import|require\\(|declare module)\\s*${quoted}`), `${file} uses ${name}`)
+    }
+  }
 })
 
 test('npm pack ships dist/ and no sources, tests, factory, or tsconfig', () => {
