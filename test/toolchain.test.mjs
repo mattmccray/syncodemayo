@@ -42,17 +42,21 @@ const HELP_MUST_LIST = [
 ]
 
 // Runtime dependencies left after replace-small-deps removed commander, dotenv, joi,
-// strip-json-comments, and yesno.
+// strip-json-comments, and yesno, and basic-ftp-connection replaced jsftp and jsftp-mkdirp
+// with basic-ftp.
 const DEPENDENCIES = {
+  'basic-ftp': '^6.2.6',
   crc: '3.4.1',
   glob: '^7.1.2',
-  jsftp: '1.3.1',
-  'jsftp-mkdirp': '0.1.2',
   minimatch: '^3.0.4',
 }
 
-// Removed by replace-small-deps: no longer dependencies, imported, or declared.
-const REMOVED_DEPENDENCIES = ['commander', 'dotenv', 'joi', 'strip-json-comments', 'yesno']
+// Removed by replace-small-deps and basic-ftp-connection: no longer dependencies, imported,
+// or declared.
+const REMOVED_DEPENDENCIES = ['commander', 'dotenv', 'joi', 'strip-json-comments', 'yesno', 'jsftp', 'jsftp-mkdirp']
+
+// The in-process FTP server the end-to-end tests run (basic-ftp-connection): dev only.
+const TEST_FTP_SERVER = 'ftp-srv'
 
 const listFiles = (dir) =>
   readdirSync(dir, { recursive: true, withFileTypes: true })
@@ -122,7 +126,7 @@ test('package.json drops eslint and the six obsolete @types packages', () => {
   }
 })
 
-test('package.json runtime dependencies are exactly the five that remain', () => {
+test('package.json runtime dependencies are exactly the four that remain', () => {
   assert.deepEqual(pkg.dependencies, DEPENDENCIES)
 })
 
@@ -138,6 +142,20 @@ test('the removed dependencies are not imported under src/ nor declared in missi
   for (const name of REMOVED_DEPENDENCIES) {
     assert.ok(!missingTypes.includes(`'${name}'`), `missing-types.d.ts still declares ${name}`)
   }
+})
+
+test('jsftp and jsftp-mkdirp are not in yarn.lock', () => {
+  const lock = readFileSync(join(REPO_ROOT, 'yarn.lock'), 'utf8')
+  for (const name of ['jsftp', 'jsftp-mkdirp']) {
+    assert.ok(!new RegExp(`(^|\\n)"?${name}@`).test(lock), `yarn.lock still lists ${name}`)
+  }
+  assert.ok(!lock.includes('jsftp'), 'yarn.lock still mentions jsftp')
+  assert.match(lock, /(^|\n)basic-ftp@/)
+})
+
+test('the in-process FTP server used by the tests is a devDependency only', () => {
+  assert.ok(TEST_FTP_SERVER in pkg.devDependencies, `${TEST_FTP_SERVER} should be a devDependency`)
+  assert.ok(!(TEST_FTP_SERVER in pkg.dependencies), `${TEST_FTP_SERVER} should not be a runtime dependency`)
 })
 
 test('ajv and its draft-04 helper are devDependencies only', () => {

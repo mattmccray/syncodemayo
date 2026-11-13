@@ -50,12 +50,26 @@ const CORPUS = [
   ['minimal', config(), true],
   ['no targets defined', config({ targets: {} }), true],
   ['every local field', config({ local: { files: '**/*.html', exclude: ['**/*.map'], defaultTarget: 'staging', deleteRemoteFiles: true } }), true],
-  ['every target field', config({ targets: { s: target({ pass: 'x', port: 21, cache: '.c', prompt: true, enabled: false, type: 'ftp' }) } }), true],
+  ['every target field', config({ targets: { s: target({ pass: 'x', port: 21, cache: '.c', prompt: true, enabled: false, type: 'ftp', secure: true, rejectUnauthorized: true }) } }), true],
   ['prompt as false', config({ targets: { s: target({ prompt: false }) } }), true],
   ['prompt as a string', config({ targets: { s: target({ prompt: 'Sure?' }) } }), true],
   ['empty exclude', config({ local: { exclude: [] } }), true],
   ['extra top-level keys', config({ $schema: './config.schema.json', extra: { anything: 1 } }), true],
   ['several targets', config({ targets: { a: target(), b: target({ port: 2121 }) } }), true],
+
+  // FTPS target fields (basic-ftp-connection): JSON values only, no divergence.
+  ['secure is true', config({ targets: { s: target({ secure: true }) } }), true],
+  ['secure is false', config({ targets: { s: target({ secure: false }) } }), true],
+  ['secure is "implicit"', config({ targets: { s: target({ secure: 'implicit', port: 990 }) } }), true],
+  ['rejectUnauthorized is true', config({ targets: { s: target({ rejectUnauthorized: true }) } }), true],
+  ['rejectUnauthorized is false', config({ targets: { s: target({ secure: true, rejectUnauthorized: false }) } }), true],
+  ['secure is "explicit"', config({ targets: { s: target({ secure: 'explicit' }) } }), false],
+  ['secure is "true"', config({ targets: { s: target({ secure: 'true' }) } }), false],
+  ['secure is "IMPLICIT"', config({ targets: { s: target({ secure: 'IMPLICIT' }) } }), false],
+  ['secure is 1', config({ targets: { s: target({ secure: 1 }) } }), false],
+  ['secure is null', config({ targets: { s: target({ secure: null }) } }), false],
+  ['rejectUnauthorized is "false"', config({ targets: { s: target({ rejectUnauthorized: 'false' }) } }), false],
+  ['rejectUnauthorized is 0', config({ targets: { s: target({ rejectUnauthorized: 0 }) } }), false],
 
   // Required fields
   ['config is not an object', [], false],

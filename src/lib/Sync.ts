@@ -2,7 +2,7 @@
 import * as path from 'path'
 import * as Log from './Log.js'
 import { IConfig, ILocalConfig, ITargetConfig, resolveTarget } from './Config.js'
-import { Connection } from './Connection.js'
+import { RemoteConnection } from './RemoteConnection.js'
 import { IFilelist, getRemoteFilelist, buildLocalFilelist } from './Filelist.js'
 import { ConfirmStreams, confirmUpload } from './Prompt.js'
 
@@ -13,11 +13,11 @@ export interface IChangeset {
 }
 
 export class Sync {
-  private _conn: Connection
+  private _conn: RemoteConnection
   private _config: IConfig
   private _target: ITargetConfig
 
-  constructor(conn: Connection, config: IConfig, target: string | ITargetConfig) {
+  constructor(conn: RemoteConnection, config: IConfig, target: string | ITargetConfig) {
     this._conn = conn
     this._config = config
     this._target = resolveTarget(config, target)
@@ -115,7 +115,7 @@ export class Sync {
     return confirmUpload(message, streams)
   }
 
-  private async _getFilelists(local: ILocalConfig, target: ITargetConfig, conn: Connection) {
+  private async _getFilelists(local: ILocalConfig, target: ITargetConfig, conn: RemoteConnection) {
     // Load/build Filesets in parralel.
     const remoteFilesLoader = getRemoteFilelist(target, conn)
     const localFilesBuilder = buildLocalFilelist(local)
@@ -159,7 +159,7 @@ export class Sync {
     return changeset
   }
 
-  static create(conn: Connection, config: IConfig, target: string | ITargetConfig) {
+  static create(conn: RemoteConnection, config: IConfig, target: string | ITargetConfig) {
     return new Sync(conn, config, target);
   }
 }
