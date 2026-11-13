@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve, sep } from 'node:path'
 
@@ -25,43 +25,39 @@ const withTempDir = (fn) => {
   }
 }
 
-// --help and --version output of the v1 build (TypeScript 2.4, CommonJS), byte for byte.
-const V1_HELP = `
-  Usage: cli [options] [command]
+// What --help must list: every command with its [target] argument, and every option.
+// The wording may differ from v1 (replace-small-deps), but not the commands and options.
+const HELP_MUST_LIST = [
+  'init [target]',
+  'changes|diff [target]',
+  'verify [target]',
+  'sync [options] [target]',
+  'ls',
+  '-c, --config <file>',
+  '-v, --verbose',
+  '-q, --quiet',
+  '-V, --version',
+  '-h, --help',
+  '-f, --force',
+]
 
-
-  Options:
-
-    -V, --version        output the version number
-    -c, --config [file]  Specify local config [file]
-    -v, --verbose        Verbose logging
-    -q, --quiet          Minimal logging
-    -h, --help           output usage information
-
-
-  Commands:
-
-    init [target]            Configure local folder and/or server to sync
-    changes|diff [target]    Perform sync dry run and display the changes
-    verify [target]          Verify server is configured
-    sync [options] [target]  Perform sync to server
-    ls                       List defined targets in config
-`
-const V1_VERSION = '1.0.0\n'
-
-// Runtime dependencies of the v1 package; this job may not change them.
-const V1_DEPENDENCIES = {
-  commander: '^2.11.0',
+// Runtime dependencies left after replace-small-deps removed commander, dotenv, joi,
+// strip-json-comments, and yesno.
+const DEPENDENCIES = {
   crc: '3.4.1',
-  dotenv: '^4.0.0',
   glob: '^7.1.2',
-  joi: '^10.6.0',
   jsftp: '1.3.1',
   'jsftp-mkdirp': '0.1.2',
   minimatch: '^3.0.4',
-  'strip-json-comments': '^2.0.1',
-  yesno: '^0.0.1',
 }
+
+// Removed by replace-small-deps: no longer dependencies, imported, or declared.
+const REMOVED_DEPENDENCIES = ['commander', 'dotenv', 'joi', 'strip-json-comments', 'yesno']
+
+const listFiles = (dir) =>
+  readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => join(entry.parentPath, entry.name))
 
 test('tsc is TypeScript 5.x', () => {
   assert.match(tsc('--version'), /^Version 5\./)
@@ -126,8 +122,29 @@ test('package.json drops eslint and the six obsolete @types packages', () => {
   }
 })
 
-test('package.json runtime dependencies are unchanged from v1', () => {
-  assert.deepEqual(pkg.dependencies, V1_DEPENDENCIES)
+test('package.json runtime dependencies are exactly the five that remain', () => {
+  assert.deepEqual(pkg.dependencies, DEPENDENCIES)
+})
+
+test('the removed dependencies are not imported under src/ nor declared in missing-types.d.ts', () => {
+  for (const file of listFiles(join(REPO_ROOT, 'src'))) {
+    const source = readFileSync(file, 'utf8')
+    for (const name of REMOVED_DEPENDENCIES) {
+      const imported = new RegExp(`(from\\s+|import\\s*\\(?\\s*|require\\s*\\(\\s*)['"]${name}['"]`)
+      assert.ok(!imported.test(source), `${relative(REPO_ROOT, file)} imports ${name}`)
+    }
+  }
+  const missingTypes = readFileSync(join(REPO_ROOT, 'src', 'missing-types.d.ts'), 'utf8')
+  for (const name of REMOVED_DEPENDENCIES) {
+    assert.ok(!missingTypes.includes(`'${name}'`), `missing-types.d.ts still declares ${name}`)
+  }
+})
+
+test('ajv and its draft-04 helper are devDependencies only', () => {
+  for (const name of ['ajv', 'ajv-draft-04']) {
+    assert.ok(name in pkg.devDependencies, `${name} should be a devDependency`)
+    assert.ok(!(name in pkg.dependencies), `${name} should not be a runtime dependency`)
+  }
 })
 
 test('npm pack ships dist/ and no sources, tests, factory, or tsconfig', () => {
@@ -151,15 +168,19 @@ test('dist/cli.js starts with a portable node shebang', () => {
   assert.equal(firstLine, '#!/usr/bin/env node')
 })
 
-test('dist/cli.js --help, run through its shebang, matches v1 byte for byte', () => {
-  const output = execFileSync(join(REPO_ROOT, 'dist', 'cli.js'), ['--help'], { cwd: REPO_ROOT, encoding: 'utf8' })
-  assert.equal(output, V1_HELP)
-})
+for (const args of [['--help'], ['-h'], []]) {
+  test(`dist/cli.js ${args.join(' ') || '(no arguments)'}, run through its shebang, exits 0 and lists every command and option`, () => {
+    const output = execFileSync(join(REPO_ROOT, 'dist', 'cli.js'), args, { cwd: REPO_ROOT, encoding: 'utf8' })
+    for (const item of HELP_MUST_LIST) assert.ok(output.includes(item), `help does not list: ${item}`)
+  })
+}
 
-test('dist/cli.js --version, run through its shebang, matches v1 byte for byte', () => {
-  const output = execFileSync(join(REPO_ROOT, 'dist', 'cli.js'), ['--version'], { cwd: REPO_ROOT, encoding: 'utf8' })
-  assert.equal(output, V1_VERSION)
-})
+for (const flag of ['--version', '-V']) {
+  test(`dist/cli.js ${flag}, run through its shebang, prints the package.json version`, () => {
+    const output = execFileSync(join(REPO_ROOT, 'dist', 'cli.js'), [flag], { cwd: REPO_ROOT, encoding: 'utf8' })
+    assert.equal(output, `${pkg.version}\n`)
+  })
+}
 
 test('require() of dist/index.js gets the same exports as an ESM import', async () => {
   const esmNames = Object.keys(await import('../dist/index.js')).sort()
