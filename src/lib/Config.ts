@@ -1,7 +1,7 @@
 import { resolve as resolvePath } from 'path'
 import { validateConfig } from './ConfigSchema.js'
 import { localFileExists, readLocalFile } from './Filelist.js'
-import stripJsonComments from 'strip-json-comments'
+import stripJsonComments from '../vendor/strip-json-comments.js'
 
 
 export interface IConfig {

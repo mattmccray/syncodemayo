@@ -58,9 +58,7 @@ test('bug: Client indexOf error misclassification (JSON parse error sets only pa
   assert.equal(client.loadError, undefined)
 })
 
-test('bug: hard-coded --version in cli.ts (prints package.json version)', {
-  todo: "fix-v1-bugs: cli.ts calls program.version('1.0.0') instead of reading package.json",
-}, () => {
+test('bug: hard-coded --version in cli.ts (prints package.json version)', () => {
   const { version } = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8'))
   const output = execFileSync(process.execPath, [join(REPO_ROOT, 'dist', 'cli.js'), '--version'], {
     cwd: REPO_ROOT,

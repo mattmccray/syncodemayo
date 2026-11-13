@@ -1,10 +1,10 @@
 
 import * as path from 'path'
-import yesno from 'yesno'
 import * as Log from './Log.js'
 import { IConfig, ILocalConfig, ITargetConfig, resolveTarget } from './Config.js'
 import { Connection } from './Connection.js'
 import { IFilelist, getRemoteFilelist, buildLocalFilelist } from './Filelist.js'
+import { ConfirmStreams, confirmUpload } from './Prompt.js'
 
 export interface IChangeset {
   added: string[]
@@ -104,17 +104,15 @@ export class Sync {
     return changeset
   }
 
-  private _confirmUpload(target: ITargetConfig, fileCount: number): Promise<boolean> {
+  private async _confirmUpload(target: ITargetConfig, fileCount: number, streams?: ConfirmStreams): Promise<boolean> {
     // If no prompt is specified, auto-confirm upload!
-    return new Promise(resolve => {
-      if (!target.prompt) return resolve(true)
+    if (!target.prompt) return true
 
-      const message = typeof target.prompt === 'string'
-        ? target.prompt
-        : "Confirm upload?"
+    const message = typeof target.prompt === 'string'
+      ? target.prompt
+      : "Confirm upload?"
 
-      yesno.ask(`${message} - (Yes will upload)`, null, resolve)
-    })
+    return confirmUpload(message, streams)
   }
 
   private async _getFilelists(local: ILocalConfig, target: ITargetConfig, conn: Connection) {
