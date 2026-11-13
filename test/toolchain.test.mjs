@@ -42,18 +42,18 @@ const HELP_MUST_LIST = [
 ]
 
 // Runtime dependencies left after replace-small-deps removed commander, dotenv, joi,
-// strip-json-comments, and yesno, and basic-ftp-connection replaced jsftp and jsftp-mkdirp
-// with basic-ftp.
+// strip-json-comments, and yesno, basic-ftp-connection replaced jsftp and jsftp-mkdirp
+// with basic-ftp, and builtin-filelist replaced glob, minimatch, and crc with Node built-ins.
 const DEPENDENCIES = {
   'basic-ftp': '^6.2.6',
-  crc: '3.4.1',
-  glob: '^7.1.2',
-  minimatch: '^3.0.4',
 }
 
-// Removed by replace-small-deps and basic-ftp-connection: no longer dependencies, imported,
-// or declared.
-const REMOVED_DEPENDENCIES = ['commander', 'dotenv', 'joi', 'strip-json-comments', 'yesno', 'jsftp', 'jsftp-mkdirp']
+// Removed by replace-small-deps, basic-ftp-connection, and builtin-filelist: no longer
+// dependencies, imported, or declared.
+const REMOVED_DEPENDENCIES = [
+  'commander', 'dotenv', 'joi', 'strip-json-comments', 'yesno', 'jsftp', 'jsftp-mkdirp',
+  'glob', 'minimatch', 'crc',
+]
 
 // The in-process FTP server the end-to-end tests run (basic-ftp-connection): dev only.
 const TEST_FTP_SERVER = 'ftp-srv'
@@ -104,7 +104,7 @@ test('tsc exits 0 and emits only into its outDir, with the expected entry points
 
 test('package.json describes the ESM dist/ build', () => {
   assert.equal(pkg.type, 'module')
-  assert.equal(pkg.engines?.node, '>=22.12')
+  assert.equal(pkg.engines?.node, '>=22.17')
   assert.equal(pkg.bin?.syncodemayo, './dist/cli.js')
   assert.equal(pkg.main, './dist/index.js')
   assert.equal(pkg.types, './dist/index.d.ts')
@@ -126,8 +126,14 @@ test('package.json drops eslint and the six obsolete @types packages', () => {
   }
 })
 
-test('package.json runtime dependencies are exactly the four that remain', () => {
+test('package.json runtime dependencies are exactly the ones that remain', () => {
   assert.deepEqual(pkg.dependencies, DEPENDENCIES)
+})
+
+test('package.json runtime dependencies drop glob, minimatch, and crc (replaced by Node built-ins)', () => {
+  for (const name of ['glob', 'minimatch', 'crc']) {
+    assert.ok(!(name in (pkg.dependencies ?? {})), `${name} should be removed from dependencies`)
+  }
 })
 
 test('the removed dependencies are not imported under src/ nor declared in missing-types.d.ts', () => {

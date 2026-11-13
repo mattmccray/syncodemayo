@@ -70,3 +70,13 @@ test('a CRC stored as a numeric string equals the number (v1 compares with !=)',
   const { changeset } = await dryRun(remote)
   assert.deepEqual(changeset, { added: [], removed: [], changed: [] })
 })
+
+test('a v1 .synco-filelist (no dotfiles) diffs to only the three new dotfiles as additions', async () => {
+  const v1Remote = JSON.parse(readFileSync('test/fixtures/site.filelist.v1.json', 'utf8'))
+  const { changeset } = await dryRun(v1Remote)
+  assert.deepEqual(changeset, {
+    added: [`${SITE}/.htaccess`, `${SITE}/.well-known/security.txt`, `${SITE}/sub/.hidden`],
+    changed: [],
+    removed: [],
+  })
+})
