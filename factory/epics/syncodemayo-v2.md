@@ -1,6 +1,6 @@
 # SyncoDeMayo 2.0
 
-- Status: draft
+- Status: ready
 - Sources: dependency review in the session of 2026-11-13 (replaces the earlier PLAN.md draft)
 - Date: 2026-11-13
 
