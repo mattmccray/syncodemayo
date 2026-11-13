@@ -29,6 +29,10 @@ export interface ITargetConfig {
   _name: string
   enabled?: boolean
   type?: string
+  /** `false` (default): plain FTP. `true`: explicit FTPS. `"implicit"`: implicit FTPS. */
+  secure?: boolean | 'implicit'
+  /** Default `true`. `false` accepts self-signed or mismatched certificates, with a warning. */
+  rejectUnauthorized?: boolean
 }
 
 async function evalConfigFromFile(pathname: string): Promise<IConfig> {
@@ -94,12 +98,14 @@ async function massageConfigData(config: IConfig): Promise<IConfig> {
   Object.keys(config.targets).forEach(name => {
     const target = config.targets[name]
     target._name = name
-    target.port = target.port || 21
+    target.port = target.port || (target.secure === 'implicit' ? 990 : 21)
     target.cache = target.cache || ".synco-filelist"
     target.enabled = target.enabled !== false
     target.type = target.type || 'ftp' // Will support more eventually
     if (typeof target.prompt === 'undefined')
       target.prompt = true
+    target.secure = target.secure ?? false
+    target.rejectUnauthorized = target.rejectUnauthorized ?? true
   })
 
   return config

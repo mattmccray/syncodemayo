@@ -7,6 +7,8 @@ import { IConfig } from './Config.js'
  *   - `port` also accepts a numeric string (parsed the way v1 joi did);
  *   - strings must not be empty;
  *   - unknown keys inside `local` and inside a target reject.
+ * The FTPS fields added in v2 (`secure`, `rejectUnauthorized`) take JSON values only, as in
+ * config.schema.json: no boolean strings.
  * Unknown top-level keys are allowed. The config is returned as given: nothing is converted.
  */
 
@@ -57,6 +59,14 @@ const stringArray: FieldCheck = (value) => {
 const booleanOrString: FieldCheck = (value) =>
   (boolean(value) && string(value)) ? 'must be a boolean or a non-empty string' : undefined
 
+// Target `secure`: exactly true, false or "implicit".
+const secure: FieldCheck = (value) =>
+  (value === true || value === false || value === 'implicit') ? undefined : 'must be true, false or "implicit"'
+
+// A JSON boolean only (no "true"/"false" strings).
+const strictBoolean: FieldCheck = (value) =>
+  typeof value === 'boolean' ? undefined : 'must be a boolean'
+
 const localShape: Shape = {
   path: { check: string, required: true },
   files: { check: string },
@@ -74,6 +84,8 @@ const targetShape: Shape = {
   cache: { check: string },
   prompt: { check: booleanOrString },
   enabled: { check: boolean },
+  secure: { check: secure },
+  rejectUnauthorized: { check: strictBoolean },
   // For future use...
   type: { check: string },
 }

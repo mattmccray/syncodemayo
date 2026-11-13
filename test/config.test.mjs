@@ -1,9 +1,11 @@
 // Characterization tests for v1 config loading: loadConfigFile, comment
 // stripping, and the defaults that massageConfigData applies.
 // Run from the repo root: v1 resolves config paths against process.cwd().
-import { test } from 'node:test'
+import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { resolve } from 'node:path'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, relative, resolve } from 'node:path'
 import { loadConfigFile } from '../dist/lib/Config.js'
 
 const COMMENTED = 'test/fixtures/config/commented.json'
@@ -46,6 +48,9 @@ test('loadConfigFile applies v1 per-target defaults', async () => {
     enabled: true,
     type: 'ftp',
     prompt: true,
+    // Added by basic-ftp-connection: the FTPS defaults.
+    secure: false,
+    rejectUnauthorized: true,
   })
 })
 
@@ -85,3 +90,75 @@ test('deleteRemoteFiles is false unless it is literally true (the string "true" 
 test('loadConfigFile rejects when the preferred path does not exist', async () => {
   await assert.rejects(loadConfigFile('test/fixtures/config/does-not-exist.json'))
 })
+
+// FTPS target fields (basic-ftp-connection): `secure` and `rejectUnauthorized`.
+
+// Loads a config whose one target, "s", has the given extra fields.
+const tempDir = mkdtempSync(join(tmpdir(), 'syncodemayo-config-'))
+after(() => rmSync(tempDir, { recursive: true, force: true }))
+let configCount = 0
+const loadWithTarget = (fields) => {
+  const file = join(tempDir, `config-${++configCount}.json`)
+  writeFileSync(file, JSON.stringify({
+    local: { path: 'public' },
+    targets: { s: { host: 'h', user: 'u', path: 'p', ...fields } },
+  }))
+  return loadConfigFile(relative(process.cwd(), file))
+}
+
+for (const secure of [true, false, 'implicit']) {
+  test(`loadConfigFile accepts secure: ${JSON.stringify(secure)}`, async () => {
+    const { targets } = await loadWithTarget({ secure })
+    assert.equal(targets.s.secure, secure)
+  })
+}
+
+for (const rejectUnauthorized of [true, false]) {
+  test(`loadConfigFile accepts rejectUnauthorized: ${rejectUnauthorized}`, async () => {
+    const { targets } = await loadWithTarget({ rejectUnauthorized })
+    assert.equal(targets.s.rejectUnauthorized, rejectUnauthorized)
+  })
+}
+
+for (const [field, value] of [
+  ['secure', 'explicit'],
+  ['secure', 'true'],
+  ['secure', 'false'],
+  ['secure', 'IMPLICIT'],
+  ['secure', 1],
+  ['secure', null],
+  ['rejectUnauthorized', 'false'],
+  ['rejectUnauthorized', 'true'],
+  ['rejectUnauthorized', 0],
+  ['rejectUnauthorized', null],
+]) {
+  test(`loadConfigFile rejects ${field}: ${JSON.stringify(value)} with a schema error naming the field`, async () => {
+    await assert.rejects(loadWithTarget({ [field]: value }), {
+      message: new RegExp(`^Config Schema Error: targets\\.s\\.${field} `),
+    })
+  })
+}
+
+test('the FTPS defaults are secure: false and rejectUnauthorized: true, with port 21', async () => {
+  const { targets } = await loadWithTarget({})
+  assert.equal(targets.s.secure, false)
+  assert.equal(targets.s.rejectUnauthorized, true)
+  assert.equal(targets.s.port, 21)
+})
+
+test('port defaults to 21 for secure: true (explicit FTPS)', async () => {
+  const { targets } = await loadWithTarget({ secure: true })
+  assert.equal(targets.s.port, 21)
+})
+
+test('port defaults to 990 for secure: "implicit"', async () => {
+  const { targets } = await loadWithTarget({ secure: 'implicit' })
+  assert.equal(targets.s.port, 990)
+})
+
+for (const secure of [false, true, 'implicit']) {
+  test(`an explicit port is kept with secure: ${JSON.stringify(secure)}`, async () => {
+    const { targets } = await loadWithTarget({ secure, port: 2121 })
+    assert.equal(targets.s.port, 2121)
+  })
+}
